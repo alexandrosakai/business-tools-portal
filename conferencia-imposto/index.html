@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Conferência de Imposto · Empresa Exemplo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#F3F5F4; --surface:#FFFFFF; --ink:#1C2A30; --muted:#5D6B72; --line:#D9E0DD;
+  --accent:#1e3a8a; --accent-soft:#E2EFEC;
+  --crit:#B42318; --crit-soft:#FCEBE9; --warn:#9A5B00; --warn-soft:#FBF1DF; --info:#4A6070; --info-soft:#E9EEF2;
+  --ok:#1F7A45; --ok-soft:#E5F3EA; --row-hover:#F6F8F7;
+  color-scheme: light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#12191C; --surface:#1A2327; --ink:#E4EBEA; --muted:#98A7AD; --line:#2C393E;
+  --accent:#93c5fd; --accent-soft:#1D3533;
+  --crit:#F28B82; --crit-soft:#3A2220; --warn:#E8B45C; --warn-soft:#352A17; --info:#A9BCC9; --info-soft:#232E35;
+  --ok:#7FD39E; --ok-soft:#1C3125; --row-hover:#202B30; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#12191C; --surface:#1A2327; --ink:#E4EBEA; --muted:#98A7AD; --line:#2C393E;
+  --accent:#93c5fd; --accent-soft:#1D3533;
+  --crit:#F28B82; --crit-soft:#3A2220; --warn:#E8B45C; --warn-soft:#352A17; --info:#A9BCC9; --info-soft:#232E35;
+  --ok:#7FD39E; --ok-soft:#1C3125; --row-hover:#202B30; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:26px;line-height:1.2;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:18px;margin:0 0 12px;font-weight:600}
+.lede{color:var(--muted);margin:0 0 22px;max-width:70ch}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* upload */
+.drop{border:2px dashed var(--line);border-radius:14px;background:var(--surface);padding:22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop p{margin:0;flex:1 1 280px}
+.drop strong{display:block;font-size:16px}
+.drop span{color:var(--muted);font-size:14px}
+.btn{border:1px solid var(--accent);background:var(--accent);color:var(--surface);padding:9px 16px;border-radius:8px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.slot{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;min-width:0}
+.slot .mark{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--info-soft);color:var(--muted)}
+.slot.done .mark{background:var(--ok-soft);color:var(--ok)}
+.slot.err .mark{background:var(--crit-soft);color:var(--crit)}
+.slot .t{font-weight:600;font-size:14px}
+.slot .f{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot div{min-width:0}
+.opts{display:flex;flex-wrap:wrap;gap:6px 18px;margin:14px 0 0;color:var(--muted);font-size:14px}
+.opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+@media (max-width:640px){.slots{grid-template-columns:minmax(0,1fr)}}
+
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:30px 0 20px;align-items:flex-end;flex-wrap:wrap}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:600;color:var(--muted);margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+.tab .n{display:inline-block;min-width:22px;padding:0 6px;border-radius:10px;font-size:12px;margin-left:6px;background:var(--info-soft);color:var(--muted)}
+.tab .n.bad{background:var(--crit-soft);color:var(--crit)}
+.tab .n.good{background:var(--ok-soft);color:var(--ok)}
+.tabs .spacer{flex:1}
+.tabs .btn{margin-bottom:8px}
+
+/* verdict */
+.verdict{display:flex;gap:24px;flex-wrap:wrap;align-items:baseline;margin-bottom:18px}
+.verdict .big{font-size:40px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.verdict .big.bad{color:var(--crit)} .verdict .big.good{color:var(--ok)}
+.verdict .sub{color:var(--muted);max-width:60ch}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-bottom:22px}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);font-size:14px}
+th{font-weight:600;color:var(--muted);font-size:13px}
+th:first-child,td:first-child{text-align:left}
+tr.diff td{background:var(--crit-soft)}
+td.neg,td.pos{font-weight:600;color:var(--crit)}
+td.zero{color:var(--muted)}
+.counts{display:flex;flex-direction:column;gap:8px}
+.count{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:var(--bg)}
+.count b{font-size:18px}
+.count.c b{color:var(--crit)} .count.a b{color:var(--warn)} .count.i b{color:var(--info)} .count.o b{color:var(--ok)}
+.count small{color:var(--muted);display:block;font-size:12.5px}
+
+/* filters */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:5px 12px;font-size:14px;display:flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--surface)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.dot.critico{background:var(--crit)} .dot.atencao{background:var(--warn)} .dot.info{background:var(--info)}
+.filters select,.filters input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:14px}
+.filters input{flex:1 1 200px;min-width:160px}
+
+/* problem list */
+.list{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.prow{border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.phead{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:grid;grid-template-columns:14px 110px minmax(0,1.6fr) 150px 120px 120px minmax(0,1.2fr) 16px;gap:12px;align-items:center;padding:11px 14px;font-size:14px}
+.phead:hover{background:var(--row-hover)}
+.phead:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.phead .nota{font-weight:600}
+.phead .nome{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phead .num{text-align:right}
+.phead .what{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phead .chev{transition:transform .15s;color:var(--muted)}
+.prow.open .chev{transform:rotate(90deg)}
+.lhead{display:grid;grid-template-columns:14px 110px minmax(0,1.6fr) 150px 120px 120px minmax(0,1.2fr) 16px;gap:12px;padding:9px 14px;font-size:12.5px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);background:var(--bg)}
+.lhead .num{text-align:right}
+.pbody{display:none;padding:4px 14px 18px 40px}
+.prow.open .pbody{display:block}
+.motivo{background:var(--bg);border-left:3px solid var(--warn);padding:10px 12px;border-radius:0 8px 8px 0;margin:6px 0 14px;max-width:90ch}
+.prow[data-sev="critico"] .motivo{border-color:var(--crit)}
+.prow[data-sev="info"] .motivo{border-color:var(--info)}
+.motivo b{display:block;margin-bottom:2px}
+.cmp td.hit{background:var(--crit-soft);font-weight:600}
+.sides{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:14px}
+.sides h3{font-size:13.5px;margin:0 0 6px;color:var(--muted);font-weight:600}
+.sides td,.sides th{font-size:13px;padding:5px 8px}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+@media (max-width:860px){
+  .phead,.lhead{grid-template-columns:12px 1fr auto 14px;row-gap:2px}
+  .lhead{display:none}
+  .phead .nome{grid-column:2/4;grid-row:2}
+  .phead .cf,.phead .va,.phead .vb{display:none}
+  .phead .what{grid-column:2/4;grid-row:3;white-space:normal}
+  .phead .chev{grid-column:4;grid-row:1}
+  .pbody{padding-left:14px}
+  .sides{grid-template-columns:minmax(0,1fr)}
+}
+details.cfop{margin-top:22px}
+details.cfop summary{cursor:pointer;font-weight:600;padding:6px 0}
+.note{color:var(--muted);font-size:13.5px;margin-top:26px;max-width:80ch}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+[hidden]{display:none!important}
+td.ds{text-align:left;white-space:normal;min-width:150px;max-width:230px}
+.slots .slot.opt{grid-column:1/-1;border-style:dashed}
+.apur td.in{padding:3px 6px}
+.apur input{width:115px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 8px;font-variant-numeric:tabular-nums}
+.apur td.sit{text-align:left;white-space:normal;min-width:170px;font-size:13.5px}
+.apur tr.key td{font-weight:700;font-size:15px}
+.apur td.bad{color:var(--crit);font-weight:600}
+.apur td.good{color:var(--ok)}
+.apur th.grp{text-align:left;color:var(--ink);font-size:14px;padding-top:16px;background:none}
+.callout{background:var(--warn-soft);border-left:3px solid var(--warn);border-radius:0 8px 8px 0;padding:10px 12px;margin:14px 0;max-width:95ch}
+.callout.ok{background:var(--ok-soft);border-color:var(--ok)}
+.callout.bad{background:var(--crit-soft);border-color:var(--crit)}
+.cfg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cfg label{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--muted)}
+.cfg input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:14px;color:var(--ink)}
+@media (max-width:640px){.cfg{grid-template-columns:minmax(0,1fr)}}
+.comp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:860px){.comp{grid-template-columns:minmax(0,1fr)}}
+.comp td,.comp th{font-size:13px;padding:5px 8px}
+/* imposto */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:18px;margin-bottom:18px}
+@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+.total{background:var(--accent);color:var(--surface);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:6px}
+.total .lbl{font-size:14px;opacity:.85}
+.total .val{font-size:44px;font-weight:700;line-height:1.05;letter-spacing:-.02em}
+.total .det{font-size:13.5px;opacity:.9;margin-top:6px}
+.total .det div{display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.2);padding:5px 0}
+.guias td.cur{font-weight:700;background:var(--accent-soft)}
+.guias th.cur{color:var(--accent)}
+.guias tr.tot td{font-weight:700;border-top:2px solid var(--ink)}
+.guias input{width:110px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px 7px}
+.scen{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 0}
+.scen div{background:var(--bg);border-radius:8px;padding:8px 12px;font-size:13.5px}
+.scen b{display:block;font-size:16px}
+/* plano */
+.prog{display:flex;align-items:center;gap:14px;margin:0 0 14px;flex-wrap:wrap}
+.bar{flex:1 1 240px;height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.grp-t{font-size:16px;font-weight:700;margin:22px 0 4px}
+.grp-d{color:var(--muted);font-size:13.5px;margin:0 0 10px}
+.act{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.act.critico{border-left-color:var(--crit)} .act.info{border-left-color:var(--info)}
+.act.done{opacity:.62;border-left-color:var(--ok)}
+.act .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.act .top .tt{font-weight:700;font-size:15px}
+.act .top .who{color:var(--muted);font-size:13.5px}
+.act .imp{margin-left:auto;font-size:13.5px;font-weight:600;padding:2px 9px;border-radius:12px;background:var(--bg);white-space:nowrap}
+.act .imp.up{color:var(--crit);background:var(--crit-soft)} .act .imp.down{color:var(--ok);background:var(--ok-soft)}
+.act p{margin:6px 0;max-width:95ch}
+.act .todo{background:var(--bg);border-radius:8px;padding:9px 12px;margin:8px 0}
+.act .todo b{display:block;font-size:13px;color:var(--muted);margin-bottom:2px}
+.act ol{margin:4px 0 0;padding-left:20px}
+.mini{font-size:13px;color:var(--muted);margin:4px 0;display:flex;flex-wrap:wrap;gap:2px 14px}
+.mini span{white-space:nowrap}
+@media (max-width:640px){.act .imp{margin-left:0;white-space:normal}}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 11px;font-size:13.5px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.after{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.after .fix{font-size:13.5px;font-weight:600}
+.after label{display:flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+.after input[type=text]{flex:1 1 220px;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 9px;font-size:13.5px}
+.bulk{font-size:13px;padding:4px 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Conferência de Imposto</h1>
+  <p class="lede">Coloque o Registro (CSV do sistema), o Relatório (XLS da contabilidade) de entradas e de saídas e, se tiver, a memória de cálculo em PDF. O painel mostra o imposto a pagar, cada ponto de atenção com o que fazer, e recalcula o imposto conforme você decide cada correção.</p>
+
+  <div class="drop" id="drop">
+    <p><strong>Solte aqui os arquivos do mês</strong><span>Os 4 de entradas e saídas e, se quiser, a memória de cálculo em PDF. Pode soltar todos juntos: o painel reconhece cada um.</span></p>
+    <button class="btn" id="pick" type="button">Escolher arquivos</button>
+    <input type="file" id="file" multiple accept=".csv,.txt,.xls,.xlsx,.pdf" hidden>
+  </div>
+  <div class="slots" id="slots"></div>
+  <div class="opts">
+    <label><input type="checkbox" id="optST" checked> Comparar ICMS ST</label>
+    <label><input type="checkbox" id="optNome" checked> Verificar nome do participante</label>
+    <label><input type="checkbox" id="optData"> Comparar datas de lançamento</label>
+  </div>
+
+  <div id="result" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-side="P">Imposto a pagar</button>
+      <button class="tab" role="tab" data-side="T">Plano de ação<span class="n" id="nT">–</span></button>
+      <button class="tab" role="tab" data-side="E">Entradas<span class="n" id="nE">–</span></button>
+      <button class="tab" role="tab" data-side="S">Saídas<span class="n" id="nS">–</span></button>
+      <button class="tab" role="tab" data-side="C">CFOPs</button>
+      <button class="tab" role="tab" data-side="A">Apuração<span class="n" id="nA">–</span></button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="export" type="button">Baixar planilha (.xlsx)</button>
+    </div>
+    <div id="panel"></div>
+  </div>
+
+  <p class="note">Tolerância de R$ 0,02 por campo. Notas com mais de um CFOP são comparadas por CFOP; quando os CFOPs não coincidem, a nota inteira é somada e comparada. Os arquivos são lidos só no seu navegador; suas decisões no plano de ação ficam salvas neste navegador, por mês.</p>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+// ===== Motor de conferência fiscal =====
+const ENG = (() => {
+  const TOL = 0.02;
+  const fm = v => (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const r2 = v => Math.round((v || 0) * 100) / 100;
+  const num = v => {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return v;
+    let s = String(v).trim().replace(/"/g, '');
+    if (!s) return 0;
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  };
+  const normNota = v => {
+    let d = String(v ?? '').replace(/\D/g, '');
+    if (d.length > 9) d = d.slice(-9);
+    d = d.replace(/^0+/, '');
+    return d || '0';
+  };
+  const normCfop = v => String(v ?? '').replace(/\D/g, '');
+  const pad = n => String(n).padStart(2, '0');
+  const fmtDate = v => {
+    if (v === null || v === undefined || v === '') return '';
+    if (v instanceof Date) return pad(v.getDate()) + '/' + pad(v.getMonth() + 1) + '/' + v.getFullYear();
+    if (typeof v === 'number') { // serial Excel
+      const d = new Date(Math.round((v - 25569) * 864e5));
+      return pad(d.getUTCDate()) + '/' + pad(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear();
+    }
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[3] + '/' + m[2] + '/' + m[1];
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (m) return pad(m[1]) + '/' + pad(m[2]) + '/' + (m[3].length === 2 ? '20' + m[3] : m[3]);
+    return s;
+  };
+  const clean = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+
+  // ---------- CSV "REGISTRO DE ENTRADAS/SAÍDAS" ----------
+  function splitCsv(line) {
+    const out = []; let cur = '', q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
+      else if (c === ';' && !q) { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+  function parseRegistro(text) {
+    const lines = text.split(/\r?\n/);
+    const hi = lines.findIndex(l => /^DT\.?\s*SAI/i.test(clean(l)) || (clean(l).includes('NUMERO') && clean(l).includes('CFOP') && clean(l).includes('VR. CON')));
+    if (hi < 0) throw new Error('Não encontrei o cabeçalho (DT. SAI; ESP.; ... CFOP) no CSV.');
+    const head = splitCsv(lines[hi]).map(clean);
+    const col = name => head.findIndex(h => h === name);
+    const C = {
+      dt: col('DT. SAI'), dtdoc: col('DT. DOC'), esp: col('ESP.'), ser: col('SER.'), nota: col('NUMERO'),
+      nome: col('CLIENTE/FORNECEDOR'), cnpj: col('C.N.P.J/C.P.F.'), uf: col('UF'), vc: col('VR. CON'),
+      cfop: col('CFOP'), bc: col('BC.ICMS'), aliq: col('ALQ.'), icms: col('VR.ICMS'), isentas: col('ISENTAS'),
+      outras: col('OUTRAS'), bcst: col('BC.RET'), st: col('ICMS RET'), bcipi: col('BC. IPI'), ipi: col('VR. IPI'), hist: col('HISTORICO')
+    };
+    const recs = [];
+    let totais = null;
+    for (let i = hi + 1; i < lines.length; i++) {
+      const l = lines[i];
+      if (!l.trim()) { if (recs.length) break; else continue; }
+      const f = splitCsv(l);
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(f[C.dt] || '')) continue;
+      const g = k => C[k] >= 0 ? f[C[k]] : '';
+      recs.push({
+        data: fmtDate(g('dt')), dataDoc: fmtDate(g('dtdoc')), esp: g('esp'), serie: g('ser'),
+        notaOrig: g('nota'), nota: normNota(g('nota')), nome: g('nome'), cnpj: g('cnpj'), uf: g('uf'),
+        cfop: normCfop(g('cfop')), vc: num(g('vc')), bc: num(g('bc')), aliq: num(g('aliq')), icms: num(g('icms')),
+        isentas: num(g('isentas')), outras: num(g('outras')), st: num(g('st')), ipi: num(g('ipi')) || num(((g('hist') || '').match(/IPI:\s*([\d.,]+)/i) || [])[1]), hist: g('hist'), linha: i + 1
+      });
+    }
+    const ti = lines.findIndex(l => clean(l).includes('TOTAIS:'));
+    if (ti >= 0) {
+      const f = splitCsv(lines[ti]).filter((x, k) => k >= 2);
+      const v = f.map(num);
+      totais = { vc: v[0], bc: v[2], icms: v[4], isentas: v[5], outras: v[6] };
+    }
+    const tipo = lines.slice(0, hi).some(l => clean(l).includes('REGISTRO DE SAIDAS')) ? 'S' :
+                 lines.slice(0, hi).some(l => clean(l).includes('REGISTRO DE ENTRADAS')) ? 'E' : null;
+    return { recs, totais, tipo };
+  }
+
+  // ---------- Planilha "Relatório Entradas/Saídas" (contabilidade) ----------
+  function parseRelatorio(rows) {
+    let C = null, cur = null, tipo = null, totalGeral = null, inTotal = false;
+    const recs = [];
+    const cell = (r, i) => (i >= 0 && r[i] !== undefined && r[i] !== null) ? r[i] : '';
+    for (const r of rows) {
+      if (!r || !r.length) continue;
+      const first = clean(r[0]);
+      const joined = r.map(clean).join('|');
+      if (first === 'CODIGO' && joined.includes('NOTA')) {
+        if (!tipo) { const H0 = r.map(clean); tipo = H0.includes('FORNECEDOR') ? 'E' : H0.includes('CLIENTE') ? 'S' : null; }
+        const H = r.map(clean);
+        const idx = (name, from = 0) => H.findIndex((h, k) => k >= from && h === name);
+        const nomeIdx = H.findIndex(h => h === 'FORNECEDOR' || h === 'CLIENTE');
+        C = {
+          data: idx('DATA'), nota: idx('NOTA'), serie: idx('SERIE'), esp: idx('ESPECIE'), nome: nomeIdx,
+          cfop: idx('CFOP'), uf: idx('UF'), vc: idx('VALOR CONTABIL'), tipo: idx('TIPO'), bc: idx('BASE CALCULO'),
+          aliq: idx('ALIQ.'), valor: idx('VALOR'), isentas: idx('ISENTAS'), outras: idx('OUTRAS')
+        };
+        cur = null; continue;
+      }
+      if (!C) continue;
+      if (first.startsWith('TOTAL')) { cur = null; inTotal = first.includes('GERAL') ? 'G' : 'D'; if (inTotal === 'G') totalGeral = {}; continue; }
+      if (first && isNaN(Number(first))) { cur = null; inTotal = false; continue; }
+      const t = clean(cell(r, C.tipo));
+      const hasCode = first !== '' && !isNaN(Number(first)) && cell(r, C.nota) !== '';
+      if (hasCode) {
+        inTotal = false;
+        cur = {
+          codigo: r[0], data: fmtDate(cell(r, C.data)), notaOrig: String(cell(r, C.nota)), nota: normNota(cell(r, C.nota)),
+          serie: String(cell(r, C.serie)), esp: String(cell(r, C.esp)), nome: String(cell(r, C.nome)),
+          cfop: normCfop(cell(r, C.cfop)), uf: String(cell(r, C.uf)), vc: num(cell(r, C.vc)),
+          bc: 0, aliq: 0, icms: 0, isentas: 0, outras: 0, st: 0, ipi: 0, difal: 0, outrosImp: []
+        };
+        recs.push(cur);
+      }
+      if (inTotal === 'G' && t) {
+        totalGeral[t] = { vc: num(cell(r, C.vc)), bc: num(cell(r, C.bc)), valor: num(cell(r, C.valor)), isentas: num(cell(r, C.isentas)), outras: num(cell(r, C.outras)) };
+        continue;
+      }
+      if (!cur || !t) continue;
+      const bc = num(cell(r, C.bc)), val = num(cell(r, C.valor)), al = num(cell(r, C.aliq));
+      if (t === 'ICMS') {
+        cur.bc += bc; cur.icms += val; cur.isentas += num(cell(r, C.isentas)); cur.outras += num(cell(r, C.outras));
+        if (al) cur.aliq = al;
+      } else if (t === 'IPI') { cur.ipi += val; }
+      else if (t === 'ST/AT' || t === 'ST') { cur.st += val; }
+      else if (t.startsWith('DIFAL')) { cur.difal += val; cur.outrosImp.push('DIFAL: ' + fm(val)); }
+      else if (val) { cur.outrosImp.push(t + ': ' + val.toFixed(2)); }
+    }
+    let totais = null;
+    if (totalGeral && totalGeral.ICMS) {
+      const g = totalGeral.ICMS;
+      totais = { vc: g.vc, bc: g.bc, icms: g.valor, isentas: g.isentas, outras: g.outras };
+    }
+    return { recs, totais, tipo };
+  }
+
+  // ---------- Comparação ----------
+  const FIELDS = [
+    ['vc', 'Valor contábil'], ['bc', 'Base ICMS'], ['icms', 'Valor ICMS'],
+    ['isentas', 'Isentas'], ['outras', 'Outras'], ['st', 'ICMS ST']
+  ];
+  const SUMF = [...FIELDS.map(f => f[0]), 'ipi'];
+  function agg(lines, key) {
+    const r0 = lines[0];
+    const g = { key, nota: r0.nota, notaOrig: r0.notaOrig, nome: r0.nome, data: r0.data, dataDoc: r0.dataDoc || '', uf: r0.uf, linhas: lines };
+    for (const f of SUMF) g[f] = r2(lines.reduce((s, r) => s + (r[f] || 0), 0));
+    const al = [...new Set(lines.map(r => r.aliq).filter(Boolean))].sort((a, b) => a - b);
+    g.aliq = al.join(' / ') || '0';
+    const cf = [...new Set(lines.map(r => r.cfop))].sort();
+    g.cfop = cf.join(' + ');
+    g.cfops = cf;
+    g.cancelada = lines.every(r => /CANCELAD/i.test(r.hist || '')) || lines.every(r => r.vc === 0 && /CANCEL/i.test(r.hist || ''));
+    g.hist = [...new Set(lines.map(r => (r.hist || '').trim()).filter(Boolean))].join(' | ');
+    g.extra = [...new Set(lines.flatMap(r => r.outrosImp || []))].join(', ');
+    return g;
+  }
+  function byKey(recs, keyFn) {
+    const m = new Map();
+    for (const r of recs) { const k = keyFn(r); if (!m.has(k)) m.set(k, []); m.get(k).push(r); }
+    return m;
+  }
+  function diffFields(a, b, opts) {
+    const out = [];
+    for (const [f, label] of FIELDS) {
+      if (f === 'st' && !opts.compararST) continue;
+      const d = r2((a[f] || 0) - (b[f] || 0));
+      if (Math.abs(d) > TOL) out.push({ campo: f, label, a: a[f] || 0, b: b[f] || 0, dif: d });
+    }
+    return out;
+  }
+  const tokens = s => new Set(clean(s).replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(t => t.length >= 4 && !/^\d+$/.test(t) && !['LTDA', 'COMERCIO', 'INDUSTRIA', 'MATERIAIS', 'DISTRIBUIDORA', 'SERVICOS', 'PRODUTOS'].includes(t)));
+  function nomesDiferentes(a, b) {
+    const A = tokens(a), B = tokens(b);
+    if (!A.size || !B.size) return false;
+    for (const t of A) if (B.has(t)) return false;
+    for (const t of A) for (const u of B) if (t.slice(0, 5) === u.slice(0, 5)) return false;
+    return true;
+  }
+  function explain(diffs, a, b) {
+    const has = f => diffs.some(d => d.campo === f);
+    const get = f => diffs.find(d => d.campo === f);
+    const msgs = [];
+    const dIs = get('isentas'), dOu = get('outras');
+    if (dIs && dOu && Math.abs(dIs.dif + dOu.dif) <= TOL && !has('vc') && !has('bc') && !has('icms'))
+      return 'Mesmo valor lançado em colunas diferentes: em um arquivo está como Isentas e no outro como Outras.';
+    if (has('vc') && !has('bc') && !has('icms')) msgs.push('Valor contábil diferente com impostos iguais (confira frete, IPI, desconto ou despesas acessórias no total da nota).');
+    if (has('bc') && !has('icms')) msgs.push('Base de cálculo diferente com o mesmo ICMS.');
+    if (has('icms')) {
+      const semA = !a.icms && !a.bc, semB = !b.icms && !b.bc;
+      if (semA !== semB) msgs.push(semB ? `O Registro (CSV) lança ICMS de R$ ${fm(a.icms)} (base ${fm(a.bc)}, ${a.aliq}%) e o Relatório (XLS) lança a nota sem ICMS.`
+                                        : `O Relatório (XLS) lança ICMS de R$ ${fm(b.icms)} (base ${fm(b.bc)}, ${b.aliq}%) e o Registro (CSV) lança a nota sem ICMS.`);
+      else if (a.aliq !== b.aliq) msgs.push(`Alíquota diferente (${a.aliq}% no Registro x ${b.aliq}% no Relatório).`);
+      else if (!has('bc')) msgs.push('ICMS diferente com a mesma base: possível arredondamento ou digitação.');
+      else msgs.push('Base e ICMS diferentes.');
+    }
+    if (has('st')) msgs.push('ICMS ST/antecipação lançado em só um dos arquivos.');
+    if (dOu && !has('vc') && !has('bc') && !has('icms') && !dIs) {
+      const ipi = Math.max(a.ipi || 0, b.ipi || 0);
+      if (ipi && Math.abs(Math.abs(dOu.dif) - ipi) <= TOL) msgs.push(`A diferença em Outras é igual ao IPI da nota (R$ ${fm(ipi)}): um arquivo soma o IPI em Outras e o outro não.`);
+      else msgs.push('Diferença só na coluna Outras.');
+    } else if (dIs && !msgs.length) msgs.push('Diferença só na coluna Isentas.');
+    return msgs.join(' ');
+  }
+  function severidade(tipo, diffs) {
+    if (tipo === 'cancelada' || tipo === 'data') return 'info';
+    if (tipo === 'soA' || tipo === 'soB') return 'critico';
+    if (diffs.some(d => ['vc', 'bc', 'icms'].includes(d.campo))) return 'critico';
+    return 'atencao';
+  }
+
+  function conferir(A, B, opts = {}) {
+    opts = Object.assign({ compararST: true, compararData: false, compararNome: true }, opts);
+    const nA = byKey(A.recs, r => r.nota), nB = byKey(B.recs, r => r.nota);
+    const problemas = []; let ok = 0;
+    const push = p => { p.sev = severidade(p.tipo, p.diffs); problemas.push(p); };
+    const notas = new Set([...nA.keys(), ...nB.keys()]);
+    for (const nota of notas) {
+      const la = nA.get(nota), lb = nB.get(nota);
+      if (!la || !lb) {
+        const g = agg(la || lb, nota);
+        if (lb && g.vc === 0 && g.bc === 0 && g.icms === 0) { push({ tipo: 'cancelada', titulo: 'Valor zero (só no Relatório)', a: null, b: g, diffs: [], motivo: 'Nota com valor zero no Relatório e ausente no Registro. Provavelmente cancelada; confira só se ela deveria existir.' }); continue; }
+        if (la && g.cancelada && g.vc === 0) { push({ tipo: 'cancelada', titulo: 'Cancelada (só no Registro)', a: g, b: null, diffs: [], motivo: 'Nota cancelada (valor zero) no Registro e ausente no Relatório. Normal se o cancelamento está correto; confira só se ela deveria existir.' }); continue; }
+        push(la ? { tipo: 'soA', titulo: 'Só no Registro (CSV)', a: g, b: null, diffs: [], motivo: 'Nota lançada no Registro (CSV) e não encontrada no Relatório (XLS).' }
+                : { tipo: 'soB', titulo: 'Só no Relatório (XLS)', a: null, b: g, diffs: [], motivo: 'Nota lançada no Relatório (XLS) e não encontrada no Registro (CSV).' });
+        continue;
+      }
+      const cfA = [...new Set(la.map(r => r.cfop))].sort().join(), cfB = [...new Set(lb.map(r => r.cfop))].sort().join();
+      const units = [];
+      if (cfA === cfB) {
+        // compara por nota + CFOP
+        const ca = byKey(la, r => r.cfop), cb = byKey(lb, r => r.cfop);
+        for (const c of ca.keys()) units.push([agg(ca.get(c), nota + '|' + c), agg(cb.get(c), nota + '|' + c), false]);
+        // várias CFOPs: se por CFOP diverge mas a nota inteira bate em contábil/base/ICMS, é só rateio diferente
+        if (ca.size > 1 && units.some(([a, b]) => diffFields(a, b, opts).some(d => ['vc', 'bc', 'icms'].includes(d.campo)))) {
+          const ta = agg(la, nota), tb = agg(lb, nota);
+          if (!diffFields(ta, tb, opts).some(d => ['vc', 'bc', 'icms'].includes(d.campo))) { units.length = 0; units.push([ta, tb, 'rateio']); }
+        }
+      } else units.push([agg(la, nota), agg(lb, nota), true]);
+      for (const [a, b, cfopDif] of units) {
+        const diffs = diffFields(a, b, opts);
+        const msgs = [];
+        let tipo = diffs.length ? 'valores' : null, titulo = 'Valores diferentes';
+        if (cfopDif === 'rateio') {
+          tipo = 'cfop'; titulo = 'Rateio entre CFOPs diferente';
+          msgs.push(`A nota usa os mesmos CFOPs (${a.cfop}) nos dois arquivos, mas o valor foi dividido entre eles de forma diferente. Somando a nota inteira, contábil, base e ICMS batem.`);
+          if (diffs.length) msgs.push(explain(diffs, a, b));
+        } else if (cfopDif) {
+          tipo = 'cfop';
+          titulo = diffs.length ? 'CFOP e valores diferentes' : 'CFOP diferente';
+          const multi = a.cfops.length > 1 || b.cfops.length > 1;
+          msgs.push(multi ? `A nota está dividida entre CFOPs de forma diferente (Registro: ${a.cfop} | Relatório: ${b.cfop}).`
+                          : `A nota tem CFOP ${a.cfop} no Registro e ${b.cfop} no Relatório.`);
+          msgs.push(diffs.length ? explain(diffs, a, b) : 'Somando a nota inteira, os valores batem.');
+        } else if (diffs.length) {
+          msgs.push(explain(diffs, a, b));
+          if (!diffs.some(d => ['vc', 'bc', 'icms', 'st'].includes(d.campo))) { tipo = 'outras'; titulo = 'Diferença em Outras/Isentas'; }
+        }
+        if (opts.compararNome && nomesDiferentes(a.nome, b.nome)) {
+          if (!tipo) { tipo = 'nome'; titulo = 'Participante diferente'; }
+          msgs.push(`Nome do participante não confere ("${a.nome}" x "${b.nome}"): confira se é o mesmo fornecedor/cliente.`);
+        }
+        if (opts.compararData && a.data && b.data && b.data !== a.data && b.data !== a.dataDoc) {
+          if (!tipo) { tipo = 'data'; titulo = 'Data diferente'; }
+          msgs.push(`Data no Registro ${a.data}${a.dataDoc && a.dataDoc !== a.data ? ' (emissão ' + a.dataDoc + ')' : ''} x Relatório ${b.data}.`);
+        }
+        if (tipo) push({ tipo, titulo, a, b, diffs, motivo: msgs.join(' ') });
+        else ok++;
+      }
+    }
+    // Totais
+    const sum = (recs, f) => r2(recs.reduce((s, r) => s + (r[f] || 0), 0));
+    const totais = FIELDS.map(([f, label]) => ({ campo: f, label, a: sum(A.recs, f), b: sum(B.recs, f), dif: r2(sum(A.recs, f) - sum(B.recs, f)) }));
+    const cfops = new Set([...A.recs, ...B.recs].map(r => r.cfop));
+    const porCfop = [...cfops].sort().map(c => {
+      const ra = A.recs.filter(r => r.cfop === c), rb = B.recs.filter(r => r.cfop === c);
+      const o = { cfop: c };
+      for (const [f] of FIELDS) { o[f + 'A'] = sum(ra, f); o[f + 'B'] = sum(rb, f); }
+      o.ok = FIELDS.every(([f]) => Math.abs(o[f + 'A'] - o[f + 'B']) <= TOL);
+      return o;
+    });
+    const ordemSev = { critico: 0, atencao: 1, info: 2 };
+    const impacto = p => Math.max(0, ...[p.a, p.b].filter(Boolean).map(x => Math.abs(x.vc || 0)), ...p.diffs.map(d => Math.abs(d.dif)));
+    problemas.sort((x, y) => ordemSev[x.sev] - ordemSev[y.sev] || impacto(y) - impacto(x));
+    return { problemas, ok, totais, porCfop, notasA: nA.size, notasB: nB.size, totaisArquivoA: A.totais, totaisArquivoB: B.totais };
+  }
+
+
+  // ---------- Apuração (ICMS normal, TARE e Fundo) ----------
+  const APUR_PADRAO = {
+    credito: '1102, 1152, 1202, 1353, 1910, 1949, 2102, 2202, 2353, 2910, 2949',
+    debito: '5102, 5152, 5202, 5910, 5949, 6102, 6108, 6202, 6910, 6949',
+    fundoVenda: '5102, 6102, 6108',
+    fundoDev: '1202, 2202',
+    pctTare: 75, pctFundo: 0.3
+  };
+  const lista = s => new Set(String(s || '').split(/[^0-9]+/).filter(Boolean));
+  function somaPor(recs, cf, campo) {
+    const por = {}; let tot = 0;
+    for (const r of recs || []) if (cf.has(r.cfop)) { por[r.cfop] = r2((por[r.cfop] || 0) + r[campo]); tot += r[campo]; }
+    return { total: r2(tot), por };
+  }
+  function foraDaLista(recs, cf, campo) {
+    const por = {}; let tot = 0;
+    for (const r of recs || []) if (!cf.has(r.cfop) && Math.abs(r[campo]) > 0.004) { por[r.cfop] = r2((por[r.cfop] || 0) + r[campo]); tot += r[campo]; }
+    return { total: r2(tot), por };
+  }
+  function apurar(ent, sai, cfg) {
+    cfg = Object.assign({}, APUR_PADRAO, cfg || {});
+    const cCred = lista(cfg.credito), cDeb = lista(cfg.debito), cV = lista(cfg.fundoVenda), cD = lista(cfg.fundoDev);
+    const o = {};
+    if (ent) { o.credito = somaPor(ent.recs, cCred, 'icms'); o.creditoFora = foraDaLista(ent.recs, cCred, 'icms'); o.devVenda = somaPor(ent.recs, cD, 'vc'); }
+    if (sai) { o.debito = somaPor(sai.recs, cDeb, 'icms'); o.debitoFora = foraDaLista(sai.recs, cDeb, 'icms'); o.venda = somaPor(sai.recs, cV, 'vc'); }
+    if (ent && sai) {
+      o.normal = r2(o.debito.total - o.credito.total);
+      o.creditoTare = o.normal > 0 ? r2(o.normal * cfg.pctTare / 100) : 0;
+      o.pagar = r2(Math.max(0, o.normal - o.creditoTare));
+      o.fundo = r2(Math.max(0, (o.venda.total - o.devVenda.total) * cfg.pctFundo / 100));
+    }
+    return o;
+  }
+  // Lê o texto da "Memória de Cálculo" (PDF) já extraído em pedaços
+  function lerMemoria(pedacos) {
+    const t = pedacos.map(s => String(s).trim()).filter(Boolean).join('|');
+    const T = clean(t);
+    const V = '([\\d.]+,\\d{2})';
+    const pega = (re) => { const m = T.match(new RegExp(re)); return m ? num(m[1]) : null; };
+    return {
+      credito: pega('CREDITO MES ATUAL\\|(?:R\\$\\|)?' + V),
+      debito: pega('DEBITO MES ATUAL\\|(?:R\\$\\|)?' + V),
+      normal: pega('ICMS NORMAL\\|(?:R\\$\\|)?' + V),
+      creditoTare: pega('CREDITO 75%[^|]*\\|(?:[^|\\d]*\\|)?(?:R\\$\\|)?' + V),
+      pagar: pega('DEB\\. ICMS NORMAL\\|[^]*?TOTAL DO DEBITO\\|(?:R\\$\\|)?[\\d.]+,\\d{2}\\|(?:R\\$\\|)?' + V),
+      venda: pega('\\|VENDA TRIBUTADA\\|(?:R\\$\\|)?' + V),
+      devVenda: pega('DEV\\. VENDA TRIBUTADA\\|(?:R\\$\\|)?' + V),
+      fundo: pega('DEV\\. VENDA TRIBUTADA\\|(?:R\\$\\|)?[\\d.]+,\\d{2}\\|(?:R\\$\\|)?' + V),
+      st: pega('DEV\\. VENDA TRIBUTADA\\|(?:R\\$\\|)?[\\d.]+,\\d{2}\\|(?:R\\$\\|)?[\\d.]+,\\d{2}\\|(?:R\\$\\|)?' + V),
+      outraUF: pega('VALOR DO ST\\|[^]*?TOTAL\\|(?:R\\$\\|)?(?:-|[\\d.]+,\\d{2})\\|(?:R\\$\\|)?TOTAL\\|(?:R\\$\\|)?(?:-|[\\d.]+,\\d{2})\\|(?:R\\$\\|)?' + V),
+      difal: pega('DIFERENCIAL DE ALIQUOTA\\|TOTAL A PAGAR\\|(?:R\\$\\|)?' + V),
+      difalDiferido: pega('DIFAL DIFERIDO[^|]*\\|(?:R\\$\\|)?' + V)
+    };
+  }
+
+
+  // métricas que entram no imposto, para um conjunto de lançamentos de um lado (E ou S)
+  function metricas(recs, lado, cfg) {
+    cfg = Object.assign({}, APUR_PADRAO, cfg || {});
+    const cC = lista(cfg.credito), cD = lista(cfg.debito), cV = lista(cfg.fundoVenda), cDv = lista(cfg.fundoDev);
+    const m = { cred: 0, deb: 0, venda: 0, dev: 0, st: 0, difal: 0 };
+    for (const r of recs || []) {
+      if (lado === 'E') { if (cC.has(r.cfop)) m.cred += r.icms; if (cDv.has(r.cfop)) m.dev += r.vc; m.st += r.st || 0; m.difal += r.difal || 0; }
+      else { if (cD.has(r.cfop)) m.deb += r.icms; if (cV.has(r.cfop)) m.venda += r.vc; }
+    }
+    for (const k in m) m[k] = r2(m[k]);
+    return m;
+  }
+  const somaM = (a, b, sinal = 1) => { const o = {}; for (const k of ['cred', 'deb', 'venda', 'dev', 'st', 'difal']) o[k] = r2((a[k] || 0) + sinal * (b[k] || 0)); return o; };
+  function impostos(m, cfg, extra) {
+    cfg = Object.assign({}, APUR_PADRAO, cfg || {}); extra = extra || {};
+    const normal = r2(m.deb - m.cred);
+    const tare = normal > 0 ? r2(normal * cfg.pctTare / 100) : 0;
+    const icms = r2(Math.max(0, normal - tare));
+    const fundo = r2(Math.max(0, (m.venda - m.dev) * cfg.pctFundo / 100));
+    const st = r2(m.st);
+    const difal = r2(m.difal + (extra.difalDiferido || 0));
+    const outraUF = r2(extra.outraUF || 0);
+    return { credito: m.cred, debito: m.deb, normal, tare, icms, fundo, st, difal, outraUF, total: r2(icms + fundo + st + difal + outraUF), saldoCredor: normal < 0 ? r2(-normal) : 0 };
+  }
+
+  return { metricas, somaM, impostos, parseRegistro, parseRelatorio, conferir, apurar, lerMemoria, APUR_PADRAO, FIELDS, r2 };
+})();
+const $ = s => document.querySelector(s);
+const brl = v => (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const SLOTS = [
+  ['E', 'A', 'Entradas', 'Registro (CSV)'], ['E', 'B', 'Entradas', 'Relatório (XLS)'],
+  ['S', 'A', 'Saídas', 'Registro (CSV)'], ['S', 'B', 'Saídas', 'Relatório (XLS)']
+];
+const CFG_KEY = 'conferencia-icms-cfg';
+function loadCfg() { try { return Object.assign({}, ENG.APUR_PADRAO, JSON.parse(localStorage.getItem(CFG_KEY) || '{}')); } catch { return Object.assign({}, ENG.APUR_PADRAO); } }
+function saveCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(state.cfg)); } catch {} }
+const APUR_LINHAS = [
+  ['credito', 'Crédito de ICMS (entradas)', 'icms'], ['debito', 'Débito de ICMS (saídas)', 'icms'],
+  ['normal', 'ICMS normal (débito − crédito)', 'icms'], ['creditoTare', 'Crédito TARE', 'icms'], ['pagar', 'ICMS a pagar (valor da guia)', 'icms', true],
+  ['venda', 'Venda tributada', 'fundo'], ['devVenda', 'Devolução de venda tributada', 'fundo'], ['fundo', 'Fundo a pagar', 'fundo', true]
+];
+const state = { files: {}, results: {}, apur: {}, memoria: { nome: '', v: {} }, cfg: null, side: 'P', itens: [], dec: {}, periodo: '', extra: {}, planoFiltro: 'pend', filtro: { sev: new Set(['critico', 'atencao', 'info']), tipo: '', q: '' }, open: new Set() };
+const TIPOS = { valores: 'Valores diferentes', outras: 'Outras/Isentas', cfop: 'CFOP / rateio', soA: 'Só no Registro', soB: 'Só no Relatório', nome: 'Participante', data: 'Data', cancelada: 'Cancelada / zerada' };
+const SEV = { critico: 'Crítico', atencao: 'Atenção', info: 'Informativo' };
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 3500); }
+
+function renderSlots() {
+  const m = state.memoria;
+  $('#slots').innerHTML = SLOTS.map(([side, src, a, b]) => {
+    const f = state.files[side + src];
+    const cls = f ? (f.erro ? 'err' : 'done') : '';
+    const mark = f ? (f.erro ? '!' : '✓') : '';
+    const info = f ? (f.erro ? esc(f.erro) : `${esc(f.nome)} · ${f.dados.recs.length} lançamentos`) : 'Aguardando arquivo';
+    return `<div class="slot ${cls}"><span class="mark">${mark}</span><div><div class="t">${a}, ${b}</div><div class="f" title="${esc(f ? f.nome : '')}">${info}</div></div></div>`;
+  }).join('') + `<div class="slot opt ${m.erro ? 'err' : m.nome ? 'done' : ''}"><span class="mark">${m.erro ? '!' : m.nome ? '✓' : ''}</span><div><div class="t">Memória de cálculo da contabilidade (PDF, opcional)</div><div class="f">${m.erro ? esc(m.erro) : m.nome ? esc(m.nome) + ' · valores lidos, confira na aba Apuração' : 'Sem o PDF, digite os valores na aba Apuração'}</div></div></div>`;
+}
+
+function decodeText(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch { return new TextDecoder('windows-1252').decode(buf); }
+}
+function sideFromName(n) {
+  const c = n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  if (/SAIDA/.test(c)) return 'S';
+  if (/ENTRADA/.test(c)) return 'E';
+  return null;
+}
+async function readFile(file) {
+  const buf = await file.arrayBuffer();
+  const isCsv = /\.(csv|txt)$/i.test(file.name);
+  if (/\.pdf$/i.test(file.name)) {
+    try {
+      if (typeof pdfjsLib === 'undefined') throw new Error('Leitor de PDF não carregou. Digite os valores na aba Apuração.');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+      const partes = [];
+      for (let i = 1; i <= doc.numPages; i++) { const pg = await doc.getPage(i); const t = await pg.getTextContent(); t.items.forEach(it => partes.push(it.str)); }
+      const v = ENG.lerMemoria(partes);
+      const achou = Object.values(v).filter(x => x !== null).length;
+      if (!achou) throw new Error('Não encontrei os valores da apuração neste PDF. Digite-os na aba Apuração.');
+      for (const k in v) if (v[k] !== null) state.memoria.v[k] = v[k];
+      state.memoria.nome = file.name; state.memoria.erro = '';
+      state.side = 'P';
+    } catch (e) { state.memoria.erro = file.name + ': ' + e.message; }
+    return;
+  }
+  try {
+    if (isCsv) {
+      const d = ENG.parseRegistro(decodeText(buf));
+      const side = d.tipo || sideFromName(file.name);
+      if (!side) throw new Error('Não consegui saber se é entrada ou saída.');
+      if (!d.recs.length) throw new Error('Nenhum lançamento encontrado no CSV.');
+      state.files[side + 'A'] = { nome: file.name, dados: d };
+    } else {
+      if (typeof XLSX === 'undefined') throw new Error('Leitor de planilhas não carregou. Recarregue a página.');
+      const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: false });
+      const d = ENG.parseRelatorio(rows);
+      const side = d.tipo || sideFromName(file.name);
+      if (!side) throw new Error('Não consegui saber se é entrada ou saída.');
+      if (!d.recs.length) throw new Error('Nenhuma nota encontrada na planilha.');
+      state.files[side + 'B'] = { nome: file.name, dados: d };
+    }
+  } catch (e) {
+    const side = sideFromName(file.name) || 'E';
+    state.files[side + (isCsv ? 'A' : 'B')] = { nome: file.name, erro: file.name + ': ' + e.message, dados: { recs: [] } };
+  }
+}
+async function handleFiles(list) {
+  for (const f of list) await readFile(f);
+  renderSlots();
+  run();
+}
+function opts() { return { compararST: $('#optST').checked, compararNome: $('#optNome').checked, compararData: $('#optData').checked }; }
+function run() {
+  for (const side of ['E', 'S']) {
+    const a = state.files[side + 'A'], b = state.files[side + 'B'];
+    state.results[side] = (a && b && !a.erro && !b.erro) ? ENG.conferir(a.dados, b.dados, opts()) : null;
+  }
+  for (const src of ['A', 'B']) {
+    const e = state.files['E' + src], s2 = state.files['S' + src];
+    const ok = f => f && !f.erro;
+    state.apur[src] = (ok(e) || ok(s2)) ? ENG.apurar(ok(e) ? e.dados : null, ok(s2) ? s2.dados : null, state.cfg) : null;
+  }
+  buildItens();
+  const temMem = Object.keys(state.memoria.v).length > 0;
+  const any = state.results.E || state.results.S || state.apur.A || state.apur.B || temMem;
+  $('#result').hidden = !any;
+  if (!any) return;
+  if ((state.side === 'E' || state.side === 'S') && !state.results[state.side]) state.side = 'P';
+  const nT = $('#nT'), pend = state.itens.filter(i => !isResolvido(i)).length;
+  nT.textContent = state.itens.length ? pend : '–'; nT.className = 'n ' + (state.itens.length ? (pend ? 'bad' : 'good') : '');
+  const nA = $('#nA'), dif = apurDivergencias();
+  if (dif === null) { nA.textContent = '–'; nA.className = 'n'; } else { nA.textContent = dif; nA.className = 'n ' + (dif ? 'bad' : 'good'); }
+  for (const side of ['E', 'S']) {
+    const r = state.results[side], el = $('#n' + side);
+    if (!r) { el.textContent = '–'; el.className = 'n'; continue; }
+    const n = r.problemas.filter(p => p.sev !== 'info').length;
+    el.textContent = n; el.className = 'n ' + (n ? 'bad' : 'good');
+  }
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.side === state.side));
+  render();
+}
+
+function totaisTable(r) {
+  return `<div class="scroll"><table><thead><tr><th>Campo</th><th>Registro (CSV)</th><th>Relatório (XLS)</th><th>Diferença</th></tr></thead><tbody>` +
+    r.totais.map(t => `<tr class="${Math.abs(t.dif) > 0.02 ? 'diff' : ''}"><td>${t.label}</td><td>${brl(t.a)}</td><td>${brl(t.b)}</td><td class="${Math.abs(t.dif) > 0.02 ? 'neg' : 'zero'}">${Math.abs(t.dif) > 0.02 ? brl(t.dif) : 'bate'}</td></tr>`).join('') +
+    `</tbody></table></div>`;
+}
+function filtered(r) {
+  const f = state.filtro, q = f.q.trim().toUpperCase();
+  return r.problemas.filter(p => f.sev.has(p.sev) && (!f.tipo || p.tipo === f.tipo) &&
+    (!q || [(p.a || p.b).nota, (p.a || p.b).notaOrig, p.a?.nome, p.b?.nome, p.a?.cfop, p.b?.cfop].join(' ').toUpperCase().includes(q)));
+}
+function pid(p) { return state.side + ':' + (p.a || p.b).key + ':' + p.tipo; }
+function lines(g) {
+  if (!g) return '<p class="empty" style="padding:10px">Não existe neste arquivo.</p>';
+  return `<div class="scroll"><table><thead><tr><th>Data</th><th>CFOP</th><th>Contábil</th><th>Base</th><th>Alíq.</th><th>ICMS</th><th>Isentas</th><th>Outras</th><th>ST</th><th>IPI</th></tr></thead><tbody>` +
+    g.linhas.map(l => `<tr><td>${esc(l.data)}</td><td>${esc(l.cfop)}</td><td>${brl(l.vc)}</td><td>${brl(l.bc)}</td><td>${brl(l.aliq)}</td><td>${brl(l.icms)}</td><td>${brl(l.isentas)}</td><td>${brl(l.outras)}</td><td>${brl(l.st)}</td><td>${brl(l.ipi)}</td></tr>`).join('') +
+    `</tbody></table></div>` + (g.hist ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px">Histórico: ${esc(g.hist)}</div>` : '') + (g.extra ? `<div style="font-size:12.5px;color:var(--muted)">Outros impostos: ${esc(g.extra)}</div>` : '');
+}
+function body(p) {
+  const a = p.a, b = p.b;
+  let cmp = '';
+  if (a && b) {
+    const hit = new Set(p.diffs.map(d => d.campo));
+    cmp = `<div class="scroll"><table class="cmp"><thead><tr><th>Campo</th><th>Registro (CSV)</th><th>Relatório (XLS)</th><th>Diferença</th></tr></thead><tbody>` +
+      `<tr><td>Participante</td><td style="text-align:left">${esc(a.nome)}</td><td style="text-align:left">${esc(b.nome)}</td><td></td></tr>` +
+      `<tr><td>CFOP</td><td class="${a.cfop !== b.cfop ? 'hit' : ''}">${esc(a.cfop)}</td><td class="${a.cfop !== b.cfop ? 'hit' : ''}">${esc(b.cfop)}</td><td></td></tr>` +
+      `<tr><td>Alíquota</td><td class="${a.aliq !== b.aliq ? 'hit' : ''}">${esc(a.aliq)}%</td><td class="${a.aliq !== b.aliq ? 'hit' : ''}">${esc(b.aliq)}%</td><td></td></tr>` +
+      `<tr><td>Data</td><td>${esc(a.data)}</td><td>${esc(b.data)}</td><td></td></tr>` +
+      ENG.FIELDS.map(([f, label]) => { const d = ENG.r2(a[f] - b[f]); const h = hit.has(f); return `<tr><td>${label}</td><td class="${h ? 'hit' : ''}">${brl(a[f])}</td><td class="${h ? 'hit' : ''}">${brl(b[f])}</td><td class="${h ? 'neg' : 'zero'}">${h ? brl(d) : '—'}</td></tr>`; }).join('') +
+      `<tr><td>IPI (informativo)</td><td>${brl(a.ipi)}</td><td>${brl(b.ipi)}</td><td></td></tr></tbody></table></div>`;
+  }
+  return `<div class="motivo"><b>${esc(p.titulo)}</b>${esc(p.motivo)}</div>${cmp}
+    <div class="sides"><div><h3>Lançamentos no Registro (CSV)</h3>${lines(a)}</div><div><h3>Lançamentos no Relatório (XLS)</h3>${lines(b)}</div></div>`;
+}
+function what(p) {
+  if (p.diffs.length) return p.diffs.map(d => `${d.label} ${brl(d.dif)}`).join(' · ');
+  return p.titulo;
+}
+function apurDivergencias() {
+  const fontes = [state.apur.A, state.apur.B, Object.keys(state.memoria.v).length ? state.memoria.v : null].filter(Boolean);
+  if (fontes.length < 2) return null;
+  let n = 0;
+  for (const [k] of APUR_LINHAS) {
+    const vals = fontes.map(f => apVal(f, k)).filter(v => v !== null && v !== undefined);
+    if (vals.length > 1 && Math.max(...vals) - Math.min(...vals) > 0.02) n++;
+  }
+  return n;
+}
+function apVal(f, k) {
+  if (!f) return null;
+  const v = f[k];
+  if (v === undefined || v === null) return null;
+  return typeof v === 'object' ? v.total : v;
+}
+const fmtIn = v => v === null || v === undefined ? '' : brl(v);
+function parseIn(s) {
+  s = String(s || '').replace(/[R$\s]/g, '');
+  if (!s) return null;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(s); return isNaN(n) ? null : Math.round(n * 100) / 100;
+}
+function situacao(k, a, b, m) {
+  const d = (x, y) => (x !== null && y !== null) ? Math.round((x - y) * 100) / 100 : null;
+  const near = v => v !== null && Math.abs(v) <= 0.02;
+  if (m !== null) {
+    const dA = d(a, m), dB = d(b, m);
+    if (dA === null && dB === null) return ['', ''];
+    const okA = dA === null || near(dA), okB = dB === null || near(dB);
+    if (okA && okB) return ['good', dA !== null && dB !== null ? 'Tudo bate' : 'Bate com a memória'];
+    if (!okA && okB && dB !== null) return ['bad', `Igual ao XLS · CSV difere ${brl(dA)}`];
+    if (okA && dA !== null && !okB) return ['bad', `Igual ao CSV · XLS difere ${brl(dB)}`];
+    return ['bad', [dA !== null ? `CSV − memória: ${brl(dA)}` : '', dB !== null ? `XLS − memória: ${brl(dB)}` : ''].filter(Boolean).join(' · ')];
+  }
+  const dAB = d(a, b);
+  if (dAB === null) return ['', ''];
+  return near(dAB) ? ['good', 'CSV e XLS iguais'] : ['bad', `CSV − XLS: ${brl(dAB)}`];
+}
+function compTable(titulo, objA, objB) {
+  const cf = [...new Set([...Object.keys(objA?.por || {}), ...Object.keys(objB?.por || {})])].sort();
+  if (!cf.length) return `<div><h3 style="font-size:13.5px;color:var(--muted);margin:0 0 6px">${titulo}</h3><p style="color:var(--muted);font-size:13px">Nenhum valor.</p></div>`;
+  return `<div><h3 style="font-size:13.5px;color:var(--muted);margin:0 0 6px">${titulo}</h3><div class="scroll"><table><thead><tr><th>CFOP</th><th>CSV</th><th>XLS</th><th>Diferença</th></tr></thead><tbody>` +
+    cf.map(c => { const a = objA?.por?.[c] ?? 0, b = objB?.por?.[c] ?? 0, dd = Math.round((a - b) * 100) / 100; return `<tr class="${Math.abs(dd) > 0.02 ? 'diff' : ''}"><td>${c}</td><td>${objA ? brl(a) : '—'}</td><td>${objB ? brl(b) : '—'}</td><td class="${Math.abs(dd) > 0.02 ? 'neg' : 'zero'}">${Math.abs(dd) > 0.02 ? brl(dd) : 'bate'}</td></tr>`; }).join('') +
+    `</tbody></table></div></div>`;
+}
+function renderApur() {
+  const A = state.apur.A, B = state.apur.B, M = state.memoria.v, cfg = state.cfg;
+  const temMem = Object.keys(M).length > 0;
+  const pctT = String(cfg.pctTare).replace('.', ','), pctF = String(cfg.pctFundo).replace('.', ',');
+  const label = (k, l) => k === 'creditoTare' ? `${l} (${pctT}% do ICMS normal)` : k === 'fundo' ? `${l} (${pctF}% sobre venda − devolução)` : l;
+  let rows = '', grp = '';
+  for (const [k, l, g, key] of APUR_LINHAS) {
+    if (g !== grp) { grp = g; rows += `<tr><th class="grp" colspan="5">${g === 'icms' ? 'ICMS normal e TARE' : 'Fundo de Desenvolvimento Econômico'}</th></tr>`; }
+    const a = apVal(A, k), b = apVal(B, k), m = M[k] ?? null;
+    const [cls, txt] = situacao(k, a, b, m);
+    rows += `<tr class="${key ? 'key' : ''}"><td>${label(k, l)}</td><td>${a === null ? '—' : brl(a)}</td><td>${b === null ? '—' : brl(b)}</td><td class="in"><input data-mem="${k}" inputmode="decimal" value="${fmtIn(m)}" aria-label="${l} na memória de cálculo" placeholder="digite"></td><td class="sit ${cls}">${esc(txt)}</td></tr>`;
+  }
+  // mensagem principal
+  let callout = '';
+  const pA = apVal(A, 'pagar'), pB = apVal(B, 'pagar'), pM = M.pagar ?? null;
+  if (pA !== null || pB !== null) {
+    const ref = pM !== null ? pM : pB, refNome = pM !== null ? 'a guia da contabilidade' : 'o Relatório (XLS)';
+    const msgs = [];
+    if (pM !== null && pB !== null) msgs.push(Math.abs(pB - pM) <= 0.02 ? `Refazendo a conta com o Relatório (XLS), a guia de ICMS dá exatamente ${brl(pM)}, igual à da contabilidade.` : `Pelo Relatório (XLS) a guia daria ${brl(pB)}, contra ${brl(pM)} da contabilidade (diferença de ${brl(pB - pM)}).`);
+    if (pA !== null && ref !== null && Math.abs(pA - ref) > 0.02) msgs.push(`Pelo Registro (CSV) a guia seria ${brl(pA)}, ou seja ${brl(Math.abs(pA - ref))} ${pA > ref ? 'a mais' : 'a menos'} que ${refNome}. A diferença vem das notas divergentes nas abas Entradas e Saídas.`);
+    else if (pA !== null && ref !== null) msgs.push('Pelo Registro (CSV) o valor também bate.');
+    const bad = msgs.some(t => /diferença|a mais|a menos/.test(t));
+    callout = `<div class="callout ${bad ? 'bad' : 'ok'}">${msgs.map(esc).join(' ')}</div>`;
+  } else if (!A && !B) callout = `<div class="callout">Coloque os arquivos de entradas e saídas para o painel refazer a apuração.</div>`;
+  const fora = [];
+  for (const [n, f] of [['Registro (CSV)', A], ['Relatório (XLS)', B]]) {
+    if (f?.creditoFora?.total) fora.push(`No ${n} há ${brl(f.creditoFora.total)} de ICMS em entradas com CFOP fora da lista de crédito (${Object.entries(f.creditoFora.por).map(([c, v]) => c + ': ' + brl(v)).join(', ')}). Esse valor não entrou no crédito.`);
+    if (f?.debitoFora?.total) fora.push(`No ${n} há ${brl(f.debitoFora.total)} de ICMS em saídas com CFOP fora da lista de débito (${Object.entries(f.debitoFora.por).map(([c, v]) => c + ': ' + brl(v)).join(', ')}). Esse valor não entrou no débito.`);
+  }
+  $('#panel').innerHTML = `
+    ${callout}
+    ${fora.map(t => `<div class="callout">${esc(t)} Se o CFOP deve contar, inclua-o nas listas em “Regras do cálculo”.</div>`).join('')}
+    <div class="card scroll apur"><table><thead><tr><th>Linha da apuração</th><th>Pelo Registro (CSV)</th><th>Pelo Relatório (XLS)</th><th>Memória da contabilidade</th><th style="text-align:left">Situação</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${temMem ? '' : '<p class="note" style="margin-top:8px">Solte o PDF da memória de cálculo junto com os outros arquivos, ou digite os valores na coluna da contabilidade.</p>'}
+    <details class="cfop" open><summary>De onde vêm os valores (por CFOP)</summary><div class="comp" style="margin-top:8px">
+      ${compTable('Crédito de ICMS (entradas)', A?.credito, B?.credito)}
+      ${compTable('Débito de ICMS (saídas)', A?.debito, B?.debito)}
+      ${compTable('Venda tributada (Fundo)', A?.venda, B?.venda)}
+      ${compTable('Devolução de venda tributada (Fundo)', A?.devVenda, B?.devVenda)}
+    </div></details>
+    <details class="cfop"><summary>Regras do cálculo</summary><div class="card" style="margin-top:8px"><div class="cfg">
+      <label>CFOPs de entrada que geram crédito<input data-cfg="credito" value="${esc(cfg.credito)}"></label>
+      <label>CFOPs de saída que geram débito<input data-cfg="debito" value="${esc(cfg.debito)}"></label>
+      <label>CFOPs de venda tributada (Fundo)<input data-cfg="fundoVenda" value="${esc(cfg.fundoVenda)}"></label>
+      <label>CFOPs de devolução de venda (Fundo)<input data-cfg="fundoDev" value="${esc(cfg.fundoDev)}"></label>
+      <label>Crédito TARE (% do ICMS normal)<input data-cfg="pctTare" inputmode="decimal" value="${pctT}"></label>
+      <label>Fundo (% sobre venda − devolução)<input data-cfg="pctFundo" inputmode="decimal" value="${pctF}"></label>
+    </div><p class="note" style="margin-top:12px">ICMS a pagar = débito − crédito − crédito TARE. Fundo = (venda tributada − devolução) × percentual. As regras ficam salvas neste navegador. <button class="btn ghost" id="cfgReset" type="button" style="padding:4px 10px;font-size:13px">Voltar ao padrão</button></p></div></details>`;
+}
+function render() {
+  if (state.side === 'A') return renderApur();
+  if (state.side === 'P') return renderImposto();
+  if (state.side === 'T') return renderPlano();
+  if (state.side === 'C') return renderCfops();
+  const r = state.results[state.side];
+  const P = $('#panel');
+  if (!r) { P.innerHTML = `<div class="empty">Coloque os dois arquivos de ${state.side === 'E' ? 'entradas' : 'saídas'} para conferir.</div>`; return; }
+  const cnt = s => r.problemas.filter(p => p.sev === s).length;
+  const nProb = cnt('critico') + cnt('atencao');
+  const total = r.ok + r.problemas.filter(p => p.tipo !== 'cancelada').length;
+  const tiposPresentes = [...new Set(r.problemas.map(p => p.tipo))];
+  const list = filtered(r);
+  P.innerHTML = `
+    <div class="verdict"><span class="big ${nProb ? 'bad' : 'good'}">${nProb ? nProb + ' não bateram' : 'Tudo bateu'}</span>
+      <span class="sub">${r.ok} conferências OK de ${total}. ${r.notasA} notas no Registro e ${r.notasB} no Relatório.</span></div>
+    <div class="grid2">
+      <div class="card"><h2>Totais do período</h2>${totaisTable(r)}</div>
+      <div class="card"><h2>Resumo das divergências</h2><div class="counts">
+        <div class="count c"><div>Crítico<small>Nota faltando, ou diferença em valor contábil, base ou ICMS</small></div><b>${cnt('critico')}</b></div>
+        <div class="count a"><div>Atenção<small>CFOP, Outras/Isentas, ICMS ST ou participante diferente</small></div><b>${cnt('atencao')}</b></div>
+        <div class="count i"><div>Informativo<small>Canceladas, zeradas ou datas</small></div><b>${cnt('info')}</b></div>
+        <div class="count o"><div>Batem<small>Notas/CFOPs iguais nos dois arquivos</small></div><b>${r.ok}</b></div>
+      </div></div>
+    </div>
+    <div class="filters">
+      ${['critico', 'atencao', 'info'].map(s => `<button class="chip" data-sev="${s}" aria-pressed="${state.filtro.sev.has(s)}"><span class="dot ${s}"></span>${SEV[s]} ${cnt(s)}</button>`).join('')}
+      <select id="ftipo" aria-label="Tipo de problema"><option value="">Todos os tipos</option>${tiposPresentes.map(t => `<option value="${t}" ${state.filtro.tipo === t ? 'selected' : ''}>${TIPOS[t] || t}</option>`).join('')}</select>
+      <input id="fq" type="search" placeholder="Buscar nota, participante ou CFOP" value="${esc(state.filtro.q)}">
+    </div>
+    <div class="list">
+      <div class="lhead"><span></span><span>Nota</span><span>Participante</span><span>CFOP (CSV → XLS)</span><span class="num">Contábil CSV</span><span class="num">Contábil XLS</span><span>O que não bateu</span><span></span></div>
+      ${list.length ? list.map(p => {
+        const g = p.a || p.b, id = pid(p), open = state.open.has(id);
+        const cf = p.a && p.b ? (p.a.cfop === p.b.cfop ? p.a.cfop : `${p.a.cfop} → ${p.b.cfop}`) : g.cfop;
+        return `<div class="prow ${open ? 'open' : ''}" data-sev="${p.sev}" data-id="${esc(id)}">
+          <button class="phead" aria-expanded="${open}"><span class="dot ${p.sev}" title="${SEV[p.sev]}"></span><span class="nota">${esc(g.nota)}</span><span class="nome">${esc(g.nome)}</span><span class="cf">${esc(cf)}</span><span class="num va">${p.a ? brl(p.a.vc) : '—'}</span><span class="num vb">${p.b ? brl(p.b.vc) : '—'}</span><span class="what">${esc(what(p))}</span><span class="chev">›</span></button>
+          <div class="pbody">${open ? body(p) : ''}</div></div>`;
+      }).join('') : `<div class="empty">${r.problemas.length ? 'Nenhuma divergência com esses filtros.' : 'Todas as notas bateram.'}</div>`}
+    </div>
+    <details class="cfop"><summary>Comparação por CFOP</summary><div class="card scroll" style="margin-top:8px"><table>
+      <thead><tr><th>CFOP</th><th>Contábil CSV</th><th>Contábil XLS</th><th>Base CSV</th><th>Base XLS</th><th>ICMS CSV</th><th>ICMS XLS</th><th>Outras CSV</th><th>Outras XLS</th></tr></thead>
+      <tbody>${r.porCfop.map(c => `<tr class="${c.ok ? '' : 'diff'}"><td>${c.cfop}</td><td>${brl(c.vcA)}</td><td>${brl(c.vcB)}</td><td>${brl(c.bcA)}</td><td>${brl(c.bcB)}</td><td>${brl(c.icmsA)}</td><td>${brl(c.icmsB)}</td><td>${brl(c.outrasA)}</td><td>${brl(c.outrasB)}</td></tr>`).join('')}</tbody></table></div></details>`;
+}
+
+// eventos
+$('#pick').onclick = () => $('#file').click();
+$('#file').onchange = e => { handleFiles([...e.target.files]); e.target.value = ''; };
+const drop = $('#drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => handleFiles([...e.dataTransfer.files]));
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => { if (!drop.contains(e.target)) { e.preventDefault(); handleFiles([...e.dataTransfer.files]); } });
+['#optST', '#optNome', '#optData'].forEach(s => $(s).onchange = run);
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => { state.side = t.dataset.side; run(); });
+$('#panel').addEventListener('click', e => {
+  const chip = e.target.closest('.chip[data-sev]');
+  if (chip) { const s = chip.dataset.sev; state.filtro.sev.has(s) ? state.filtro.sev.delete(s) : state.filtro.sev.add(s); render(); return; }
+  const head = e.target.closest('.phead');
+  if (head) {
+    const row = head.parentElement, id = row.dataset.id, r = state.results[state.side];
+    const p = r.problemas.find(x => pid(x) === id);
+    if (state.open.has(id)) { state.open.delete(id); row.classList.remove('open'); head.setAttribute('aria-expanded', 'false'); }
+    else { state.open.add(id); row.querySelector('.pbody').innerHTML = body(p); row.classList.add('open'); head.setAttribute('aria-expanded', 'true'); }
+  }
+});
+$('#panel').addEventListener('change', e => {
+  if (e.target.id === 'ftipo') { state.filtro.tipo = e.target.value; render(); return; }
+  const mk = e.target.dataset.mem;
+  if (mk) { const v = parseIn(e.target.value); if (v === null) delete state.memoria.v[mk]; else state.memoria.v[mk] = v; run(); return; }
+  const ck = e.target.dataset.cfg;
+  if (ck) {
+    if (ck === 'pctTare' || ck === 'pctFundo') { const v = parseIn(e.target.value); if (v !== null) state.cfg[ck] = v; }
+    else state.cfg[ck] = e.target.value;
+    saveCfg(); run(); const det = document.querySelectorAll('details.cfop')[1]; if (det) det.open = true;
+  }
+});
+$('#panel').addEventListener('click', e => { if (e.target.id === 'cfgReset') { state.cfg = Object.assign({}, ENG.APUR_PADRAO); saveCfg(); run(); } }, true);
+$('#panel').addEventListener('input', e => {
+  if (e.target.id === 'fq') { state.filtro.q = e.target.value; const pos = e.target.selectionStart; render(); const i = $('#fq'); i.focus(); i.setSelectionRange(pos, pos); }
+});
+
+// exportação
+function sheetRows(r) {
+  const head = ['Severidade', 'Tipo', 'Nota', 'Participante (CSV)', 'Participante (XLS)', 'CFOP CSV', 'CFOP XLS', 'Data CSV', 'Data XLS',
+    'Contábil CSV', 'Contábil XLS', 'Base CSV', 'Base XLS', 'Alíq. CSV', 'Alíq. XLS', 'ICMS CSV', 'ICMS XLS', 'Isentas CSV', 'Isentas XLS', 'Outras CSV', 'Outras XLS', 'ST CSV', 'ST XLS', 'IPI CSV', 'IPI XLS', 'Campos com diferença', 'Explicação'];
+  const v = (g, f) => g ? g[f] : '';
+  return [head, ...r.problemas.map(p => { const a = p.a, b = p.b; return [SEV[p.sev], p.titulo, (a || b).notaOrig, v(a, 'nome'), v(b, 'nome'), v(a, 'cfop'), v(b, 'cfop'), v(a, 'data'), v(b, 'data'),
+    v(a, 'vc'), v(b, 'vc'), v(a, 'bc'), v(b, 'bc'), v(a, 'aliq'), v(b, 'aliq'), v(a, 'icms'), v(b, 'icms'), v(a, 'isentas'), v(b, 'isentas'), v(a, 'outras'), v(b, 'outras'), v(a, 'st'), v(b, 'st'), v(a, 'ipi'), v(b, 'ipi'),
+    p.diffs.map(d => `${d.label}: ${d.dif.toFixed(2).replace('.', ',')}`).join('; '), p.motivo]; })];
+}
+$('#export').onclick = async () => {
+  try {
+    const wb = XLSX.utils.book_new();
+    const res = [['Lado', 'Campo', 'Registro (CSV)', 'Relatório (XLS)', 'Diferença']];
+    for (const [side, nome] of [['E', 'Entradas'], ['S', 'Saídas']]) {
+      const r = state.results[side]; if (!r) continue;
+      r.totais.forEach(t => res.push([nome, t.label, t.a, t.b, t.dif]));
+      res.push([]);
+    }
+    const w0 = XLSX.utils.aoa_to_sheet(res); w0['!cols'] = [{ wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+    const bA = baseMetricas('A'), bB = baseMetricas('B'), cor = corrigidas(), ex = extra(), M = state.memoria.v;
+    if (bA || bB) {
+      const iA = bA ? ENG.impostos(bA, state.cfg, ex) : {}, iB = bB ? ENG.impostos(bB, state.cfg, ex) : {}, iC = cor ? ENG.impostos(cor, state.cfg, ex) : {};
+      const mem = { icms: M.pagar, fundo: M.fundo, st: M.st, difal: M.difal, outraUF: M.outraUF };
+      const im = [['Imposto', 'Pelo CSV (sistema)', 'Pelo XLS (contabilidade)', 'Com as correções decididas', 'Memória da contabilidade']];
+      for (const [k, l] of [['icms', 'ICMS normal (TARE)'], ['fundo', 'Fundo de Desenvolvimento'], ['st', 'ICMS ST antecipação'], ['difal', 'DIFAL'], ['outraUF', 'DIFAL ou ST p/ outra UF'], ['total', 'Total a pagar']])
+        im.push([l, iA[k] ?? '', iB[k] ?? '', iC[k] ?? '', k === 'total' ? (['icms', 'fundo', 'st', 'difal', 'outraUF'].every(x => mem[x] != null) ? ENG.r2(mem.icms + mem.fundo + mem.st + mem.difal + mem.outraUF) : '') : (mem[k] ?? '')]);
+      const wi = XLSX.utils.aoa_to_sheet(im); wi['!cols'] = [{ wch: 28 }, { wch: 18 }, { wch: 22 }, { wch: 24 }, { wch: 22 }];
+      XLSX.utils.book_append_sheet(wb, wi, 'Imposto a pagar');
+    }
+    if (state.itens.length) {
+      const pl = [['Prioridade', 'Status', 'Lado', 'Nota', 'Participante', 'Problema', 'O que aconteceu', 'O que fazer', 'Decisão', 'Correção a fazer', 'Impacto no imposto se o CSV estiver certo', 'Observação']];
+      for (const it of state.itens) {
+        const d = decOf(it), ac = acoes(it), g = it.p.a || it.p.b;
+        pl.push([GRUPOS[grupoDe(it)][0], isResolvido(it) ? 'Resolvido' : 'Pendente', ladoNome(it.side), g.nota, g.nome, it.p.titulo, it.p.motivo, ac.passos.join(' '),
+          d.dec === 'xls' ? 'O certo é o XLS' : d.dec === 'csv' ? 'O certo é o CSV' : d.dec === 'ok' ? 'Não é erro' : '',
+          d.dec === 'xls' ? 'Sistema: ' + ac.xls : d.dec === 'csv' ? 'Contabilidade: ' + ac.csv : '', it.dTax, d.obs || '']);
+      }
+      const wp = XLSX.utils.aoa_to_sheet(pl); wp['!cols'] = [18, 10, 9, 12, 32, 24, 60, 60, 16, 50, 16, 30].map(w => ({ wch: w }));
+      wp['!autofilter'] = { ref: wp['!ref'] };
+      XLSX.utils.book_append_sheet(wb, wp, 'Plano de ação');
+    }
+    XLSX.utils.book_append_sheet(wb, w0, 'Resumo');
+    {
+      const rows = [['Linha da apuração', 'CFOP', 'Descrição', 'Contábil CSV', 'Contábil XLS', 'Base CSV', 'Base XLS', 'ICMS CSV', 'ICMS XLS', 'Valor usado CSV', 'Valor usado XLS', 'Diferença']];
+      for (const g of gruposApuracao()) {
+        const A = porCfopMap(g.lado + 'A') || {}, B = porCfopMap(g.lado + 'B') || {};
+        let tA = 0, tB = 0;
+        for (const c of g.cfops) { const a = A[c] || {}, b = B[c] || {}; const va = a[g.campo] || 0, vb = b[g.campo] || 0; tA += va; tB += vb;
+          rows.push([g.titulo, c, descCfop(c), a.vc || 0, b.vc || 0, a.bc || 0, b.bc || 0, a.icms || 0, b.icms || 0, va, vb, ENG.r2(va - vb)]); }
+        rows.push(['Total ' + g.titulo, '', '', '', '', '', '', '', '', ENG.r2(tA), ENG.r2(tB), ENG.r2(tA - tB)]);
+        if (state.memoria.v[g.mem] != null) rows.push(['Memória de cálculo', '', '', '', '', '', '', '', '', '', state.memoria.v[g.mem], '']);
+        rows.push([]);
+      }
+      const wc = XLSX.utils.aoa_to_sheet(rows); wc['!cols'] = [34, 8, 40, 14, 14, 14, 14, 12, 12, 15, 15, 12].map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, wc, 'CFOPs da apuração');
+    }
+    if (state.apur.A || state.apur.B || Object.keys(state.memoria.v).length) {
+      const ap = [['Linha da apuração', 'Pelo Registro (CSV)', 'Pelo Relatório (XLS)', 'Memória da contabilidade', 'Situação']];
+      for (const [k, l] of APUR_LINHAS) { const a = apVal(state.apur.A, k), b = apVal(state.apur.B, k), m = state.memoria.v[k] ?? null; ap.push([l, a ?? '', b ?? '', m ?? '', situacao(k, a, b, m)[1]]); }
+      const wa = XLSX.utils.aoa_to_sheet(ap); wa['!cols'] = [{ wch: 34 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 60 }];
+      XLSX.utils.book_append_sheet(wb, wa, 'Apuração');
+    }
+    for (const [side, nome] of [['E', 'Divergências Entradas'], ['S', 'Divergências Saídas']]) {
+      const r = state.results[side]; if (!r) continue;
+      const ws = XLSX.utils.aoa_to_sheet(sheetRows(r));
+      ws['!cols'] = [10, 22, 12, 34, 34, 12, 12, 11, 11, ...Array(16).fill(12), 40, 80].map(w => ({ wch: w }));
+      ws['!autofilter'] = { ref: ws['!ref'] };
+      XLSX.utils.book_append_sheet(wb, ws, nome);
+    }
+    for (const [side, nome] of [['E', 'CFOP Entradas'], ['S', 'CFOP Saídas']]) {
+      const r = state.results[side]; if (!r) continue;
+      const rows = [['CFOP', 'Contábil CSV', 'Contábil XLS', 'Base CSV', 'Base XLS', 'ICMS CSV', 'ICMS XLS', 'Isentas CSV', 'Isentas XLS', 'Outras CSV', 'Outras XLS', 'Bate?'],
+        ...r.porCfop.map(c => [c.cfop, c.vcA, c.vcB, c.bcA, c.bcB, c.icmsA, c.icmsB, c.isentasA, c.isentasB, c.outrasA, c.outrasB, c.ok ? 'Sim' : 'Não'])];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), nome);
+    }
+    const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const nomeArq = 'conferencia-imposto' + (state.periodo ? '-' + state.periodo : '') + '.xlsx';
+    const downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (downloads) await downloads.save({ filename: nomeArq, data: new Blob([out]) });
+    else {
+      const url = URL.createObjectURL(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a'); a.href = url; a.download = nomeArq; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+    toast('Planilha baixada.');
+  } catch (e) {
+    if (e && e.code === 'declined') return;
+    toast('Não foi possível baixar: ' + (e.message || e.code || e));
+  }
+};
+
+
+// ================= CFOPs =================
+const CFOP_DESC = {
+  '1102': 'Compra para revenda (estadual)', '1152': 'Transferência de estoque', '1202': 'Devolução de venda (estadual)', '1303': 'Serviço de comunicação',
+  '1353': 'Serviço de transporte (estadual)', '1403': 'Compra para revenda com ST (estadual)', '1407': 'Compra uso/consumo com ST', '1409': 'Transferência com ST',
+  '1411': 'Devolução de venda com ST', '1556': 'Compra de uso e consumo', '1653': 'Compra de combustível', '1910': 'Entrada de bonificação/doação/brinde',
+  '1929': 'Entrada referente a cupom fiscal', '1933': 'Serviço tributado pelo ISS', '1949': 'Outra entrada não especificada',
+  '2102': 'Compra para revenda (interestadual)', '2202': 'Devolução de venda (interestadual)', '2353': 'Serviço de transporte (interestadual)',
+  '2403': 'Compra para revenda com ST (interestadual)', '2407': 'Compra uso/consumo com ST (interestadual)', '2411': 'Devolução de venda com ST (interestadual)',
+  '2551': 'Compra de ativo imobilizado (interestadual)', '2556': 'Compra de uso e consumo (interestadual)', '2910': 'Entrada de bonificação/doação/brinde (interestadual)',
+  '2933': 'Serviço tributado pelo ISS (interestadual)', '2949': 'Outra entrada não especificada (interestadual)',
+  '5102': 'Venda de mercadoria (estadual)', '5152': 'Transferência de estoque', '5202': 'Devolução de compra (estadual)', '5405': 'Venda com ST (substituído)',
+  '5409': 'Transferência com ST', '5910': 'Remessa em bonificação/doação/brinde', '5949': 'Outra saída não especificada',
+  '6102': 'Venda de mercadoria (interestadual)', '6108': 'Venda a não contribuinte (interestadual)', '6202': 'Devolução de compra (interestadual)',
+  '6910': 'Remessa em bonificação/doação/brinde (interestadual)', '6949': 'Outra saída não especificada (interestadual)'
+};
+const descCfop = c => CFOP_DESC[c] || '';
+function porCfopMap(key) {
+  const f = state.files[key]; const m = {};
+  if (!f || f.erro) return null;
+  for (const r of f.dados.recs) {
+    const o = m[r.cfop] = m[r.cfop] || { vc: 0, bc: 0, icms: 0, isentas: 0, outras: 0, st: 0 };
+    for (const k in o) o[k] += r[k] || 0;
+  }
+  for (const c in m) for (const k in m[c]) m[c][k] = ENG.r2(m[c][k]);
+  return m;
+}
+const listaCfg = s => String(s || '').split(/[^0-9]+/).filter(Boolean);
+function gruposApuracao() {
+  const c = state.cfg;
+  return [
+    { id: 'cred', titulo: 'Crédito de ICMS', lado: 'E', campo: 'icms', cfops: listaCfg(c.credito), mem: 'credito', expl: 'Soma do ICMS das entradas destes CFOPs.' },
+    { id: 'deb', titulo: 'Débito de ICMS', lado: 'S', campo: 'icms', cfops: listaCfg(c.debito), mem: 'debito', expl: 'Soma do ICMS das saídas destes CFOPs.' },
+    { id: 'venda', titulo: 'Fundo: venda tributada', lado: 'S', campo: 'vc', cfops: listaCfg(c.fundoVenda), mem: 'venda', expl: 'Soma do valor contábil das saídas destes CFOPs.' },
+    { id: 'dev', titulo: 'Fundo: devolução de venda tributada', lado: 'E', campo: 'vc', cfops: listaCfg(c.fundoDev), mem: 'devVenda', expl: 'Soma do valor contábil das entradas destes CFOPs (é descontada da venda).' }
+  ];
+}
+const st2 = (a, b) => Math.abs((a || 0) - (b || 0)) <= 0.02;
+function tabelaGrupo(g) {
+  const A = porCfopMap(g.lado + 'A'), B = porCfopMap(g.lado + 'B'), M = state.memoria.v;
+  const nomeCampo = g.campo === 'icms' ? 'ICMS' : 'Valor contábil';
+  let tA = 0, tB = 0;
+  const linhas = g.cfops.map(c => {
+    const a = A?.[c], b = B?.[c];
+    const va = a ? a[g.campo] : 0, vb = b ? b[g.campo] : 0; tA += va; tB += vb;
+    const dif = ENG.r2(va - vb), mov = a || b;
+    return `<tr class="${st2(va, vb) ? '' : 'diff'}"><td>${c}</td><td class="ds">${esc(descCfop(c))}</td>
+      <td>${A ? brl(a?.vc) : '—'}</td><td>${B ? brl(b?.vc) : '—'}</td>${g.campo === 'icms' ? `<td>${A ? brl(a?.bc) : '—'}</td><td>${B ? brl(b?.bc) : '—'}</td>` : ''}
+      <td><b>${A ? brl(va) : '—'}</b></td><td><b>${B ? brl(vb) : '—'}</b></td>
+      <td class="${st2(va, vb) ? 'zero' : 'neg'}">${!mov ? 'sem movimento' : st2(va, vb) ? 'bate' : brl(dif)}</td></tr>`;
+  }).join('');
+  tA = ENG.r2(tA); tB = ENG.r2(tB);
+  const mv = M[g.mem] ?? null;
+  const memTxt = mv === null ? '' : `<tr><td colspan="${g.campo === 'icms' ? 6 : 4}" style="text-align:right;color:var(--muted)">Memória de cálculo da contabilidade</td><td colspan="2" style="text-align:center"><b>${brl(mv)}</b></td><td class="${st2(tB, mv) && st2(tA, mv) ? 'zero' : 'neg'}">${st2(tA, mv) && st2(tB, mv) ? 'bate com os dois' : st2(tB, mv) ? 'bate com o XLS' : st2(tA, mv) ? 'bate com o CSV' : 'não bate'}</td></tr>`;
+  return `<div class="card" style="margin-bottom:16px"><h2 style="margin-bottom:2px">${g.titulo}</h2><p class="grp-d">${g.expl}</p><div class="scroll"><table>
+    <thead><tr><th>CFOP</th><th style="text-align:left">Descrição</th><th>Contábil CSV</th><th>Contábil XLS</th>${g.campo === 'icms' ? '<th>Base CSV</th><th>Base XLS</th>' : ''}<th>${nomeCampo} CSV</th><th>${nomeCampo} XLS</th><th>Diferença</th></tr></thead>
+    <tbody>${linhas}<tr class="tot" style="font-weight:700"><td colspan="${g.campo === 'icms' ? 6 : 4}">Total: ${g.titulo}</td><td>${brl(tA)}</td><td>${brl(tB)}</td><td class="${st2(tA, tB) ? 'zero' : 'neg'}">${st2(tA, tB) ? 'bate' : brl(tA - tB)}</td></tr>${memTxt}</tbody></table></div></div>`;
+}
+function tabelaComparacao(lado) {
+  const A = porCfopMap(lado + 'A'), B = porCfopMap(lado + 'B');
+  if (!A && !B) return '';
+  const usados = new Set(gruposApuracao().filter(g => g.lado === lado).flatMap(g => g.cfops));
+  const cfs = [...new Set([...Object.keys(A || {}), ...Object.keys(B || {})])].sort();
+  const z = { vc: 0, bc: 0, icms: 0, isentas: 0, outras: 0, st: 0 };
+  const rows = cfs.map(c => {
+    const a = A?.[c] || z, b = B?.[c] || z;
+    const ok = ['vc', 'bc', 'icms', 'isentas', 'outras', 'st'].every(k => st2(a[k], b[k]));
+    const so = !A?.[c] ? 'só no XLS' : !B?.[c] ? 'só no CSV' : '';
+    const dif = ['vc', 'bc', 'icms', 'outras'].filter(k => !st2(a[k], b[k])).map(k => ({ vc: 'contábil', bc: 'base', icms: 'ICMS', outras: 'outras' }[k] + ' ' + brl(a[k] - b[k])));
+    const fora = !usados.has(c) && (Math.abs(a.icms) > 0.004 || Math.abs(b.icms) > 0.004);
+    return `<tr class="${ok ? '' : 'diff'}"><td>${c}</td><td class="ds">${esc(descCfop(c))}</td><td style="text-align:left">${usados.has(c) ? 'Sim' : fora ? '<b style="color:var(--warn)">Não, mas tem ICMS</b>' : 'Não'}</td>
+      <td>${brl(a.vc)}</td><td>${brl(b.vc)}</td><td>${brl(a.bc)}</td><td>${brl(b.bc)}</td><td>${brl(a.icms)}</td><td>${brl(b.icms)}</td><td>${brl(a.outras)}</td><td>${brl(b.outras)}</td>
+      <td style="text-align:left" class="${ok ? 'zero' : 'neg'}">${ok ? 'bate' : so || dif.join(' · ')}</td></tr>`;
+  }).join('');
+  const nDif = cfs.filter(c => { const a = A?.[c] || z, b = B?.[c] || z; return !['vc', 'bc', 'icms', 'isentas', 'outras', 'st'].every(k => st2(a[k], b[k])); }).length;
+  return `<div class="card" style="margin-bottom:16px"><h2 style="margin-bottom:2px">Todos os CFOPs de ${lado === 'E' ? 'entrada' : 'saída'}</h2>
+    <p class="grp-d">${cfs.length} CFOPs, ${nDif ? `<b style="color:var(--crit)">${nDif} com diferença</b> entre CSV e XLS` : 'todos batem entre CSV e XLS'}. A coluna “Entra na apuração” mostra se o CFOP está nas listas da memória de cálculo.</p>
+    <div class="scroll"><table><thead><tr><th>CFOP</th><th style="text-align:left">Descrição</th><th style="text-align:left">Entra na apuração</th><th>Contábil CSV</th><th>Contábil XLS</th><th>Base CSV</th><th>Base XLS</th><th>ICMS CSV</th><th>ICMS XLS</th><th>Outras CSV</th><th>Outras XLS</th><th style="text-align:left">Situação</th></tr></thead>
+    <tbody>${rows}</tbody></table></div></div>`;
+}
+function renderCfops() {
+  const P = $('#panel');
+  const tem = ['EA', 'EB', 'SA', 'SB'].some(k => state.files[k] && !state.files[k].erro);
+  if (!tem) { P.innerHTML = '<div class="empty">Coloque os arquivos de entradas e saídas para comparar os CFOPs.</div>'; return; }
+  const gs = gruposApuracao();
+  const res = gs.map(g => {
+    const A = porCfopMap(g.lado + 'A'), B = porCfopMap(g.lado + 'B');
+    const tA = ENG.r2(g.cfops.reduce((s, c) => s + (A?.[c]?.[g.campo] || 0), 0)), tB = ENG.r2(g.cfops.reduce((s, c) => s + (B?.[c]?.[g.campo] || 0), 0));
+    const m = state.memoria.v[g.mem] ?? null;
+    return `<tr class="${st2(tA, tB) && (m === null || st2(tB, m)) ? '' : 'diff'}"><td style="text-align:left">${g.titulo}</td><td style="text-align:left;white-space:normal;font-size:13px">${g.cfops.join(', ')}</td><td>${A ? brl(tA) : '—'}</td><td>${B ? brl(tB) : '—'}</td><td>${m === null ? '—' : brl(m)}</td></tr>`;
+  }).join('');
+  P.innerHTML = `
+    <div class="card" style="margin-bottom:16px"><h2>Resumo: CFOPs que calculam o imposto e o Fundo</h2>
+      <p class="grp-d">São as listas da memória de cálculo da contabilidade. Para mudar, use Apuração → Regras do cálculo.</p>
+      <div class="scroll"><table><thead><tr><th style="text-align:left">Linha da apuração</th><th style="text-align:left">CFOPs</th><th>Pelo CSV</th><th>Pelo XLS</th><th>Memória</th></tr></thead><tbody>${res}</tbody></table></div>
+      <p class="note" style="margin-top:10px">ICMS normal = débito − crédito. Guia de ICMS = ICMS normal − ${String(state.cfg.pctTare).replace('.', ',')}% (TARE). Fundo = ${String(state.cfg.pctFundo).replace('.', ',')}% × (venda tributada − devolução).</p></div>
+    ${gs.map(tabelaGrupo).join('')}
+    ${tabelaComparacao('E')}${tabelaComparacao('S')}`;
+}
+
+// ================= Plano de ação e imposto =================
+const DEC_KEY = () => 'conferencia-icms-dec:' + (state.periodo || 'geral');
+function detectPeriodo() {
+  const recs = ['EA', 'EB', 'SA', 'SB'].flatMap(k => state.files[k] && !state.files[k].erro ? state.files[k].dados.recs : []);
+  const cont = {};
+  recs.forEach(r => { const m = String(r.data || '').match(/\/(\d{2})\/(\d{4})$/); if (m) cont[m[2] + '-' + m[1]] = (cont[m[2] + '-' + m[1]] || 0) + 1; });
+  return Object.entries(cont).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+}
+function loadDec() { try { state.dec = JSON.parse(localStorage.getItem(DEC_KEY()) || '{}'); } catch { state.dec = {}; } }
+function saveDec() { try { localStorage.setItem(DEC_KEY(), JSON.stringify(state.dec)); } catch {} }
+const nomePeriodo = p => { if (!p) return ''; const [y, m] = p.split('-'); return ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'][+m - 1] + '/' + y; };
+
+function extra() {
+  const M = state.memoria.v;
+  return {
+    difalDiferido: state.extra.difalDiferido ?? M.difalDiferido ?? 0,
+    outraUF: state.extra.outraUF ?? M.outraUF ?? 0
+  };
+}
+function baseMetricas(src) {
+  const e = state.files['E' + src], s2 = state.files['S' + src];
+  if (!e || e.erro || !s2 || s2.erro) return null;
+  const m = ENG.somaM(ENG.metricas(e.dados.recs, 'E', state.cfg), ENG.metricas(s2.dados.recs, 'S', state.cfg));
+  // o DIFAL só é calculado pela contabilidade (linhas DIFALI do XLS); usa o mesmo valor nos dois lados
+  if (src === 'A') { const eb = state.files.EB; if (eb && !eb.erro) m.difal = ENG.metricas(eb.dados.recs, 'E', state.cfg).difal; }
+  return m;
+}
+function buildItens() {
+  const p = detectPeriodo();
+  if (p !== state.periodo) { state.periodo = p; loadDec(); }
+  const itens = [];
+  const baseB = baseMetricas('B');
+  const impB = baseB ? ENG.impostos(baseB, state.cfg, extra()) : null;
+  for (const side of ['E', 'S']) {
+    const r = state.results[side]; if (!r) continue;
+    for (const pr of r.problemas) {
+      const g = pr.a || pr.b;
+      const id = side + ':' + g.nota + ':' + (g.key || '') + ':' + pr.tipo;
+      const mA = ENG.metricas(pr.a ? pr.a.linhas : [], side, state.cfg), mB = ENG.metricas(pr.b ? pr.b.linhas : [], side, state.cfg);
+      const delta = ENG.somaM(mA, mB, -1);
+      delta.difal = 0; // DIFAL só existe no Relatório (contabilidade calcula); não depende de qual arquivo está certo
+      let dTax = 0;
+      if (baseB) dTax = ENG.r2(ENG.impostos(ENG.somaM(baseB, delta), state.cfg, extra()).total - impB.total);
+      itens.push({ id, side, p: pr, delta, dTax, afeta: Math.abs(dTax) > 0.004 || Object.values(delta).some(v => Math.abs(v) > 0.004) });
+    }
+  }
+  // ordem: afeta imposto > crítico > atenção > info
+  const o = { critico: 0, atencao: 1, info: 2 };
+  itens.sort((x, y) => (y.afeta - x.afeta) || (o[x.p.sev] - o[y.p.sev]) || (Math.abs(y.dTax) - Math.abs(x.dTax)));
+  state.itens = itens;
+}
+const decOf = it => state.dec[it.id] || {};
+const isResolvido = it => { const d = decOf(it); return d.dec === 'ok' || !!d.feito; };
+function grupoDe(it) {
+  if (it.afeta) return 1;
+  if (it.p.sev === 'info') return 3;
+  return 2;
+}
+function corrigidas() {
+  const baseB = baseMetricas('B'); if (!baseB) return null;
+  let m = baseB;
+  for (const it of state.itens) if (decOf(it).dec === 'csv') m = ENG.somaM(m, it.delta);
+  return m;
+}
+function cenarioPendentesCSV() {
+  let m = corrigidas(); if (!m) return null;
+  for (const it of state.itens) if (!decOf(it).dec && it.afeta) m = ENG.somaM(m, it.delta);
+  return m;
+}
+const ladoNome = s => s === 'E' ? 'Entrada' : 'Saída';
+const partNome = s => s === 'E' ? 'fornecedor' : 'cliente';
+function acoes(it) {
+  const p = it.p, a = p.a, b = p.b, g = a || b, side = it.side, n = g.nota, quem = partNome(side);
+  const xml = `Abra a NF-e ${n} (XML ou consulta na SEFAZ pela chave de acesso).`;
+  const T = {
+    soB: { passos: [xml, `Confirme se a nota é de ${nomePeriodo(state.periodo) || 'este mês'} e se não foi cancelada.`, 'Se a nota é válida, ela precisa estar no sistema também.'],
+      xls: `Lançar a nota ${n} (${g.nome}) no sistema, com os mesmos valores da contabilidade.`, csv: `Pedir à contabilidade para excluir a nota ${n} do livro (não deveria estar lançada).` },
+    soA: { passos: [xml, `Confirme se a nota é de ${nomePeriodo(state.periodo) || 'este mês'} e se não foi cancelada.`, 'Procure no Relatório da contabilidade se ela foi lançada com outro número (erro de digitação).'],
+      xls: `Excluir a nota ${n} do sistema ou corrigir o número (se foi lançada por engano ou com número errado).`, csv: `Enviar a nota ${n} (${g.nome}) para a contabilidade lançar.` },
+    valores: { passos: [xml, 'Compare na nota: valor total, base de cálculo, alíquota e ICMS destacado.', 'O arquivo que estiver diferente do documento é o que precisa ser corrigido.'],
+      xls: `Corrigir no sistema os valores da nota ${n} para ficarem iguais aos da contabilidade.`, csv: `Pedir à contabilidade para corrigir os valores da nota ${n} conforme o sistema.` },
+    cfop: { passos: [xml, 'Confira a natureza da operação e o CFOP de entrada correto (compra para revenda, uso e consumo, com ST etc.).', 'Se a mercadoria tem ICMS-ST, o CFOP de entrada costuma ser 1403/2403; sem ST, 1102/2102.'],
+      xls: `Ajustar no sistema o CFOP da nota ${n} para ${b?.cfop || ''}.`, csv: `Pedir à contabilidade para lançar a nota ${n} com CFOP ${a?.cfop || ''}.` },
+    outras: { passos: ['Não altera imposto: é só a coluna em que o valor foi lançado (Isentas/Outras ou o IPI somado em Outras).', 'Normalmente basta padronizar o critério entre o sistema e a contabilidade.'],
+      xls: `Ajustar no sistema a coluna Isentas/Outras da nota ${n}.`, csv: `Pedir à contabilidade para ajustar a coluna Isentas/Outras da nota ${n}.` },
+    nome: { passos: [xml, `Confira o CNPJ/CPF do ${quem} na nota.`, `O nome está diferente entre os dois arquivos: provavelmente o código do ${quem} está trocado em um dos cadastros.`],
+      xls: `Corrigir o ${quem} da nota ${n} no sistema.`, csv: `Pedir à contabilidade para corrigir o ${quem} da nota ${n}.` },
+    data: { passos: ['Confira a data de entrada/saída que deve valer para a escrituração.'], xls: `Ajustar a data da nota ${n} no sistema.`, csv: `Pedir à contabilidade para ajustar a data da nota ${n}.` },
+    cancelada: { passos: ['Confirme na SEFAZ que a nota está cancelada (ou que realmente tem valor zero).', 'Se estiver cancelada, não há nada a corrigir.'],
+      xls: `Nada a fazer se a nota ${n} estiver mesmo cancelada.`, csv: `Pedir à contabilidade para registrar a nota ${n} como cancelada.` }
+  };
+  const r = Object.assign({}, T[p.tipo] || T.valores);
+  if (p.diffs.some(x => x.campo === 'st')) r.passos = [...r.passos, 'Veja se a nota tem ICMS-ST/antecipação (guia própria ou destaque no XML). Se tem ST, ela deve aparecer nos dois arquivos com o mesmo valor de ST.'];
+  if (p.diffs.some(x => x.campo === 'icms') && ((a && !a.icms) || (b && !b.icms))) r.passos = [...r.passos, 'Decida se esta entrada dá direito a crédito de ICMS. Se não dá (ex.: mercadoria com ST), o ICMS não deve ser lançado como crédito em nenhum dos arquivos.'];
+  return r;
+}
+function fmtDelta(v) { return (v > 0 ? '+' : '') + brl(v); }
+function porque(it) {
+  const L = { cred: 'crédito de ICMS', deb: 'débito de ICMS', venda: 'venda tributada do Fundo', dev: 'devolução do Fundo', st: 'ICMS ST' };
+  const partes = Object.entries(it.delta).filter(([k, v]) => L[k] && Math.abs(v) > 0.004).map(([k, v]) => `${L[k]} ${fmtDelta(v)}`);
+  if (!partes.length) return '';
+  let extra = '';
+  if (it.p.tipo === 'cfop' && it.delta.cred) extra = ' Isso acontece porque um dos CFOPs desta nota não está na lista de CFOPs que geram crédito (veja Apuração → Regras do cálculo).';
+  return `<p class="mini" style="color:var(--ink);display:block">Por que mexe no imposto: se o CSV estiver certo, muda o ${partes.join(', ')}.${extra}</p>`;
+}
+function cardAcao(it) {
+  const p = it.p, a = p.a, b = p.b, g = a || b, d = decOf(it), ac = acoes(it);
+  const done = isResolvido(it);
+  const imp = it.dTax ? `<span class="imp ${it.dTax > 0 ? 'up' : 'down'}" title="Quanto o imposto total muda se o CSV estiver certo">Se o CSV estiver certo: ${fmtDelta(it.dTax)}</span>` : `<span class="imp">Não altera o imposto</span>`;
+  const mini = (a && b) ? `<div class="mini"><span>CFOP ${esc(a.cfop)} × ${esc(b.cfop)}</span><span>Contábil ${brl(a.vc)} × ${brl(b.vc)}</span><span>Base ${brl(a.bc)} × ${brl(b.bc)}</span><span>ICMS ${brl(a.icms)} × ${brl(b.icms)}</span>${(a.st || b.st) ? `<span>ST ${brl(a.st)} × ${brl(b.st)}</span>` : ''}<span>(CSV × XLS)</span></div>`
+    : `<div class="mini"><span>${a ? 'Só no CSV' : 'Só no XLS'}</span><span>CFOP ${esc(g.cfop)}</span><span>Contábil ${brl(g.vc)}</span><span>ICMS ${brl(g.icms)}</span><span>Data ${esc(g.data)}</span></div>`;
+  let after = '';
+  if (d.dec === 'xls' || d.dec === 'csv') {
+    after = `<div class="after"><span class="fix">${d.dec === 'xls' ? 'Corrigir no sistema: ' + esc(ac.xls) : 'Pedir à contabilidade: ' + esc(ac.csv)}</span>
+      <label><input type="checkbox" data-feito="${esc(it.id)}" ${d.feito ? 'checked' : ''}> Correção feita</label>
+      <input type="text" data-obs="${esc(it.id)}" value="${esc(d.obs || '')}" placeholder="Observação (opcional)"></div>`;
+  } else if (d.dec === 'ok') {
+    after = `<div class="after"><span class="fix">Marcado como sem erro.</span><input type="text" data-obs="${esc(it.id)}" value="${esc(d.obs || '')}" placeholder="Observação (opcional)"></div>`;
+  }
+  return `<div class="act ${done ? 'done' : p.sev}">
+    <div class="top"><span class="tt">${ladoNome(it.side)} · NF ${esc(g.nota)} · ${esc(p.titulo)}</span><span class="who">${esc(g.nome)}</span>${imp}</div>
+    <p>${esc(p.motivo)}</p>${mini}${porque(it)}
+    <div class="todo"><b>O que fazer</b><ol>${ac.passos.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>
+    <div class="seg" role="group" aria-label="Qual arquivo está certo">
+      <button data-dec="xls" data-id="${esc(it.id)}" aria-pressed="${d.dec === 'xls'}">O certo é o XLS (contabilidade)</button>
+      <button data-dec="csv" data-id="${esc(it.id)}" aria-pressed="${d.dec === 'csv'}">O certo é o CSV (sistema)</button>
+      <button data-dec="ok" data-id="${esc(it.id)}" aria-pressed="${d.dec === 'ok'}">Não é erro</button>
+    </div>${after}</div>`;
+}
+const GRUPOS = {
+  1: ['Afetam o imposto', 'Resolva primeiro: dependendo de qual arquivo está certo, o valor a pagar muda.'],
+  2: ['Corrigir lançamento', 'Não mudam o imposto do mês, mas os dois arquivos precisam ficar iguais (CFOP, colunas, cadastro).'],
+  3: ['Só conferir', 'Canceladas, valores zerados ou datas. Normalmente basta confirmar.']
+};
+function renderPlano() {
+  const P = $('#panel'), its = state.itens;
+  if (!its.length) { P.innerHTML = `<div class="empty">${state.results.E || state.results.S ? 'Nenhum ponto de atenção: tudo bateu.' : 'Coloque os arquivos de entradas e saídas para montar o plano de ação.'}</div>`; return; }
+  const res = its.filter(isResolvido).length, pct = Math.round(res / its.length * 100);
+  const f = state.planoFiltro;
+  const vis = its.filter(i => f === 'todos' || (f === 'pend' ? !isResolvido(i) : isResolvido(i)));
+  let html = `<div class="prog"><b>${res} de ${its.length} resolvidos</b><div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="filters" style="margin:0">${[['pend', 'Pendentes'], ['feitos', 'Resolvidos'], ['todos', 'Todos']].map(([k, l]) => `<button class="chip" data-pf="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div></div>`;
+  for (const gnum of [1, 2, 3]) {
+    const lst = vis.filter(i => grupoDe(i) === gnum);
+    const tot = its.filter(i => grupoDe(i) === gnum);
+    if (!tot.length) continue;
+    const pendG = tot.filter(i => !isResolvido(i)).length;
+    html += `<div class="grp-t">${GRUPOS[gnum][0]} <span style="color:var(--muted);font-weight:500;font-size:14px">(${pendG} pendentes de ${tot.length})</span></div><p class="grp-d">${GRUPOS[gnum][1]}`;
+    if (gnum > 1 && pendG) html += ` <button class="btn ghost bulk" data-bulk="${gnum}" type="button">Marcar todos deste grupo como “não é erro”</button>`;
+    html += `</p>` + (lst.length ? lst.map(cardAcao).join('') : `<div class="empty" style="padding:14px">Nada ${f === 'pend' ? 'pendente' : 'aqui'} neste grupo.</div>`);
+  }
+  P.innerHTML = html;
+}
+function renderImposto() {
+  const P = $('#panel'), M = state.memoria.v, ex = extra();
+  const bA = baseMetricas('A'), bB = baseMetricas('B'), cor = corrigidas(), cen = cenarioPendentesCSV();
+  if (!bA && !bB) { P.innerHTML = `<div class="empty">Coloque os arquivos de entradas e saídas (CSV e XLS) para calcular o imposto.</div>`; return; }
+  const iA = bA ? ENG.impostos(bA, state.cfg, ex) : null, iB = bB ? ENG.impostos(bB, state.cfg, ex) : null, iC = cor ? ENG.impostos(cor, state.cfg, ex) : null;
+  const temMem = Object.keys(M).length > 0;
+  const iM = temMem ? { icms: M.pagar ?? null, fundo: M.fundo ?? null, st: M.st ?? null, difal: M.difal ?? null, outraUF: M.outraUF ?? null } : null;
+  if (iM) iM.total = ['icms', 'fundo', 'st', 'difal', 'outraUF'].every(k => iM[k] !== null) ? ENG.r2(iM.icms + iM.fundo + iM.st + iM.difal + iM.outraUF) : null;
+  const final = iC || iB || iA;
+  const afetaPend = state.itens.filter(i => i.afeta && !decOf(i).dec);
+  const decididos = state.itens.filter(i => i.afeta && decOf(i).dec).length;
+  const iCen = cen ? ENG.impostos(cen, state.cfg, ex) : null;
+  const linhas = [['icms', 'ICMS normal (TARE)'], ['fundo', 'Fundo de Desenvolvimento'], ['st', 'ICMS ST antecipação'], ['difal', 'DIFAL (diferencial de alíquota)'], ['outraUF', 'DIFAL ou ST p/ outra UF']];
+  const col = (o, k) => o && o[k] !== null && o[k] !== undefined ? brl(o[k]) : '—';
+  const pt = nomePeriodo(state.periodo);
+  P.innerHTML = `
+    <div class="hero">
+      <div class="total"><span class="lbl">Imposto a pagar${pt ? ' · ' + pt : ''}${iC ? ' · com suas correções' : ''}</span><span class="val">R$ ${brl(final.total)}</span>
+        <div class="det">${linhas.map(([k, l]) => `<div><span>${l}</span><span>${brl(final[k])}</span></div>`).join('')}</div></div>
+      <div class="card"><h2>Situação</h2>
+        ${iM && iM.total !== null && iC ? `<p style="margin:0 0 8px">${Math.abs(iC.total - iM.total) <= 0.02 ? `Com as decisões até agora, o imposto <b>bate com a memória da contabilidade</b> (R$ ${brl(iM.total)}).` : `Com as decisões até agora, o imposto fica <b>${brl(Math.abs(iC.total - iM.total))} ${iC.total > iM.total ? 'acima' : 'abaixo'}</b> da memória da contabilidade (R$ ${brl(iM.total)}).`}</p>` : ''}
+        ${afetaPend.length ? `<p style="margin:0 0 8px">Ainda há <b>${afetaPend.length} pontos pendentes que mexem no imposto</b>. Enquanto não decidir, o painel considera o valor da contabilidade (XLS).</p>
+          <div class="scen"><div>Se todos seguirem o XLS<b>R$ ${brl(final.total)}</b></div>${iCen ? `<div>Se todos seguirem o CSV<b>R$ ${brl(iCen.total)}</b></div>` : ''}</div>
+          <p style="margin:12px 0 0"><button class="btn" data-goto="T" type="button">Abrir o plano de ação</button></p>`
+        : `<p style="margin:0">${decididos ? 'Todos os pontos que mexem no imposto já foram decididos.' : 'Nenhuma divergência mexe no imposto.'} ${state.itens.filter(i => !isResolvido(i)).length ? `Ainda há ${state.itens.filter(i => !isResolvido(i)).length} correções de lançamento pendentes no plano de ação.` : ''}</p>`}
+      </div>
+    </div>
+    <div class="card scroll guias"><table>
+      <thead><tr><th>Imposto</th><th>Pelo CSV (sistema)</th><th>Pelo XLS (contabilidade)</th><th class="cur">Com suas correções</th><th>Memória da contabilidade</th></tr></thead>
+      <tbody>${linhas.map(([k, l]) => `<tr><td>${l}</td><td>${col(iA, k)}</td><td>${col(iB, k)}</td><td class="cur">${col(iC, k)}</td><td>${col(iM, k)}</td></tr>`).join('')}
+      <tr class="tot"><td>Total a pagar</td><td>${col(iA, 'total')}</td><td>${col(iB, 'total')}</td><td class="cur">${col(iC, 'total')}</td><td>${col(iM, 'total')}</td></tr></tbody></table></div>
+    <details class="cfop" open><summary>Valores que não vêm dos arquivos</summary><div class="card" style="margin-top:8px">
+      <div class="cfg">
+        <label>DIFAL diferido de mês anterior<input data-extra="difalDiferido" inputmode="decimal" value="${brl(ex.difalDiferido)}"></label>
+        <label>DIFAL ou ST para outra UF (por apuração)<input data-extra="outraUF" inputmode="decimal" value="${brl(ex.outraUF)}"></label>
+      </div><p class="note" style="margin-top:10px">${temMem ? 'Preenchidos a partir da memória de cálculo; altere se precisar.' : 'Sem a memória de cálculo, digite estes valores.'} O DIFAL do mês vem das linhas DIFALI do Relatório (XLS) e o ST antecipação das linhas ST/AT. ICMS normal = (débito − crédito) − crédito TARE de ${String(state.cfg.pctTare).replace('.', ',')}%. Fundo = ${String(state.cfg.pctFundo).replace('.', ',')}% de (venda tributada − devolução).</p></div></details>
+    ${iC ? `<details class="cfop"><summary>Como chegou no valor com suas correções</summary><div class="card scroll" style="margin-top:8px"><table>
+      <thead><tr><th>Item</th><th>XLS</th><th>Com correções</th></tr></thead><tbody>
+      <tr><td>Crédito de ICMS</td><td>${brl(iB.credito)}</td><td>${brl(iC.credito)}</td></tr>
+      <tr><td>Débito de ICMS</td><td>${brl(iB.debito)}</td><td>${brl(iC.debito)}</td></tr>
+      <tr><td>ICMS normal</td><td>${brl(iB.normal)}</td><td>${brl(iC.normal)}</td></tr>
+      <tr><td>Crédito TARE</td><td>${brl(iB.tare)}</td><td>${brl(iC.tare)}</td></tr>
+      <tr><td>Venda tributada − devolução</td><td>${brl(bB.venda - bB.dev)}</td><td>${brl(cor.venda - cor.dev)}</td></tr>
+      </tbody></table><p class="note" style="margin-top:8px">Parte do XLS e aplica a diferença de cada nota em que você marcou “o certo é o CSV”.</p></div></details>` : ''}`;
+}
+// eventos novos
+$('#panel').addEventListener('click', e => {
+  const go = e.target.closest('[data-goto]');
+  if (go) { state.side = go.dataset.goto; run(); window.scrollTo({ top: $('#result').offsetTop - 10 }); return; }
+  const pf = e.target.closest('[data-pf]');
+  if (pf) { state.planoFiltro = pf.dataset.pf; render(); return; }
+  const db = e.target.closest('[data-dec]');
+  if (db) {
+    const id = db.dataset.id, cur = state.dec[id] || {};
+    if (cur.dec === db.dataset.dec) delete state.dec[id]; else state.dec[id] = Object.assign({}, cur, { dec: db.dataset.dec, feito: db.dataset.dec === cur.dec ? cur.feito : false });
+    saveDec(); const y = window.scrollY; run(); window.scrollTo(0, y); return;
+  }
+  const bk = e.target.closest('[data-bulk]');
+  if (bk) { state.itens.filter(i => grupoDe(i) === +bk.dataset.bulk && !decOf(i).dec).forEach(i => state.dec[i.id] = { dec: 'ok' }); saveDec(); run(); toast('Grupo marcado como sem erro.'); }
+});
+$('#panel').addEventListener('change', e => {
+  const fe = e.target.dataset.feito;
+  if (fe) { state.dec[fe] = Object.assign({}, state.dec[fe], { feito: e.target.checked }); saveDec(); const y = window.scrollY; run(); window.scrollTo(0, y); return; }
+  const ob = e.target.dataset.obs;
+  if (ob) { state.dec[ob] = Object.assign({}, state.dec[ob], { obs: e.target.value }); saveDec(); return; }
+  const ek = e.target.dataset.extra;
+  if (ek) { const v = parseIn(e.target.value); if (v === null) delete state.extra[ek]; else state.extra[ek] = v; run(); }
+});
+state.cfg = loadCfg();
+renderSlots();
+</script></body></html>

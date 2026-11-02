@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhatsApp · Empresa Exemplo</title>
+<link rel="icon" href="/img/PLACEHOLDER-FAVICON.png">
+<meta name="robots" content="noindex">
+<style>
+  :root { --brand:#2563eb; --brand-dark:#1d4ed8; --bg:#f4f7f5; --card:#fff; --text:#16231b; --muted:#5d6b62; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--brand); padding:28px 16px; text-align:center; }
+  header img { height:56px; max-width:80%; }
+  main { max-width:960px; margin:0 auto; padding:32px 16px 48px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  p.sub { margin:0 0 24px; color:var(--muted); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  a.card { display:block; background:var(--card); border:1px solid #dfe7e2; border-radius:12px; padding:20px; text-decoration:none; color:inherit; transition:transform .12s, box-shadow .12s, border-color .12s; }
+  a.card:hover, a.card:focus-visible { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.08); border-color:var(--brand-dark); outline:none; }
+  .icon { font-size:1.8rem; line-height:1; margin-bottom:10px; }
+  .card h2 { font-size:1.05rem; margin:0 0 6px; }
+  .card p { margin:0; font-size:.9rem; color:var(--muted); }
+  footer { text-align:center; color:var(--muted); font-size:.8rem; padding-bottom:24px; }
+  .back { display:inline-block; margin-bottom:12px; color:var(--brand-dark); text-decoration:none; font-size:.9rem; }
+  .back:hover { text-decoration:underline; }
+  .info { background:var(--card); border:1px solid #dfe7e2; border-radius:12px; padding:16px 20px; margin-top:28px; font-size:.92rem; color:var(--muted); }
+  .info h3 { margin:0 0 8px; font-size:1rem; color:var(--text); }
+  .info ul { margin:0; padding-left:20px; }
+  .info li { margin:4px 0; }
+  .tag { display:inline-block; font-size:.72rem; background:#e7f6ec; color:var(--brand-dark); border-radius:99px; padding:1px 8px; margin-left:6px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<header><img src="/img/PLACEHOLDER-LOGO.png" alt="Empresa Exemplo"></header>
+<main>
+  <a class="back" href="https://app.example.com/">← Sistemas internos</a>
+  <h1>WhatsApp</h1>
+  <p class="sub">Mensagens automáticas e conversa com o assistente para os contatos cadastrados.</p>
+  <div class="grid">
+    <a class="card" href="/whatsapp/mensagens/">
+      <div class="icon">✉️</div>
+      <h2>Mensagens</h2>
+      <p>Conversas dos contatos cadastrados: histórico, áudios, documentos e resposta direta.</p>
+    </a>
+    <a class="card" href="/whatsapp/empresa/">
+      <div class="icon">🏢</div>
+      <h2>Informações da empresa</h2>
+      <p>Cadastre horário, telefones, endereço e regras. O assistente usa isso para responder.</p>
+    </a>
+    <a class="card" href="/whatsapp/contatos/">
+      <div class="icon">🚫</div>
+      <h2>Contatos e descadastro</h2>
+      <p>Descadastre quem não deve mais receber mensagens, ou reative um contato.</p>
+    </a>
+    <a class="card" href="https://n8n.example.com/form/cadastrar">
+      <div class="icon">👤</div>
+      <h2>Cadastrar contato</h2>
+      <p>Cadastre quem vai receber os avisos e poderá conversar com o assistente.</p>
+    </a>
+    <a class="card" href="https://n8n.example.com/form/agendar">
+      <div class="icon">🗓️</div>
+      <h2>Agendar mensagem</h2>
+      <p>Programe avisos por dia e hora, para todos, um grupo ou números específicos.</p>
+    </a>
+    <a class="card" href="https://evolution.example.com/manager">
+      <div class="icon">📱</div>
+      <h2>Conexão do WhatsApp <span class="tag">admin</span></h2>
+      <p>Veja se o número está conectado, reconecte pelo QR Code e confira a instância.</p>
+    </a>
+    <a class="card" href="https://n8n.example.com">
+      <div class="icon">⚙️</div>
+      <h2>Automações <span class="tag">admin</span></h2>
+      <p>Fluxos do n8n: recebimento, fila de envio, conversa com o Claude e resumos de áudio.</p>
+    </a>
+  </div>
+  <div class="info">
+    <h3>Como funciona</h3>
+    <ul>
+      <li><b>Quem não é cadastrado</b> não recebe nenhuma resposta automática.</li>
+      <li><b>Cadastrados</b> conversam com o assistente <b>mandando qualquer mensagem</b>. A conversa recomeça do zero depois de 6 horas sem mensagens (ou ao enviar <i>encerrar</i>). Para tirar alguém da lista, use <b>Contatos e descadastro</b>.</li>
+      <li>Áudios de cadastrados são transcritos e resumidos em tópicos, e o arquivo fica guardado no servidor.</li>
+      <li>Os avisos programados saem um de cada vez, com intervalo aleatório, entre 08:00 e 19:00.</li>
+      <li>Os formulários pedem usuário e senha de acesso.</li>
+    </ul>
+  </div>
+</main>
+<footer>Empresa Exemplo · uso interno</footer>
+</body>
+</html>

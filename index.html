@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Empresa Exemplo — Sistemas</title>
+<link rel="icon" href="/img/PLACEHOLDER-FAVICON.png">
+<meta name="robots" content="noindex">
+<style>
+  :root { --brand:#2563eb; --brand-dark:#1d4ed8; --bg:#f4f7f5; --card:#fff; --text:#16231b; --muted:#5d6b62; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--brand); padding:28px 16px; text-align:center; }
+  header img { height:56px; max-width:80%; }
+  main { max-width:960px; margin:0 auto; padding:32px 16px 48px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  p.sub { margin:0 0 24px; color:var(--muted); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  a.card { display:block; background:var(--card); border:1px solid #dfe7e2; border-radius:12px; padding:20px; text-decoration:none; color:inherit; transition:transform .12s, box-shadow .12s, border-color .12s; }
+  a.card:hover, a.card:focus-visible { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.08); border-color:var(--brand-dark); outline:none; }
+  .icon { font-size:1.8rem; line-height:1; margin-bottom:10px; }
+  .card h2 { font-size:1.05rem; margin:0 0 6px; }
+  .card p { margin:0; font-size:.9rem; color:var(--muted); }
+  footer { text-align:center; color:var(--muted); font-size:.8rem; padding-bottom:24px; }
+</style>
+</head>
+<body>
+<header><img src="/img/PLACEHOLDER-LOGO.png" alt="Empresa Exemplo"></header>
+<main>
+  <h1>Sistemas internos</h1>
+  <p class="sub">Escolha o sistema que deseja acessar.</p>
+  <div class="grid">
+    <!-- SISTEMAS: para adicionar um novo, copie um bloco <a class="card"> abaixo -->
+    <a class="card" href="https://example.com">
+      <div class="icon">🏗️</div>
+      <h2>Empresa Exemplo Obras</h2>
+      <p>Cadastro de obras, visitas, relatórios e pesquisas.</p>
+    </a>
+    <a class="card" href="https://chat.example.com">
+      <div class="icon">💬</div>
+      <h2>Empresa Exemplo Chat</h2>
+      <p>Conversas, chamadas, arquivos, calendário e tarefas.</p>
+    </a>
+    <a class="card" href="/etiquetas/">
+      <div class="icon">🏷️</div>
+      <h2>Etiquetas</h2>
+      <p>Geração e impressão de etiquetas com código de barras.</p>
+    </a>
+    <a class="card" href="/conferencia-imposto/">
+      <div class="icon">📑</div>
+      <h2>Conferência de imposto</h2>
+      <p>Conferência do ICMS mensal e cálculo do imposto a pagar.</p>
+    </a>
+    <a class="card" href="/diagnostico/">
+      <div class="icon">📊</div>
+      <h2>Diagnóstico Empresarial</h2>
+      <p>Questionário por módulo, tabulação, conclusões e planos de ação.</p>
+    </a>
+    <a class="card" href="/checklist/">
+      <div class="icon">📋</div>
+      <h2>Checklists</h2>
+      <p>Checklists diários, semanais e de manutenção preenchidos pelos colaboradores.</p>
+    </a>
+    <a class="card" href="https://example.com/whatsapp/">
+      <div class="icon">💬</div>
+      <h2>WhatsApp</h2>
+      <p>Cadastro de contatos, mensagens programadas e conversa com o assistente.</p>
+    </a>
+  </div>
+</main>
+<footer>Empresa Exemplo · uso interno</footer>
+</body>
+</html>

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Etiquetas 10×15 por lote</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{
+  --bg:#e4e8ea; --panel:#ffffff; --ink:#1e2a31; --muted:#5d6b73; --line:#cdd4d8;
+  --accent:#0f6b5c; --accent-ink:#ffffff; --soft:#eef3f2; --zero:#9aa5ab; --warn:#9a5b00;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#161b1e; --panel:#1f262a; --ink:#e3e8ea; --muted:#99a6ad; --line:#334047;
+    --accent:#3fb39c; --accent-ink:#0d1a17; --soft:#22302d; --zero:#5f6c73; --warn:#e0a54a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161b1e; --panel:#1f262a; --ink:#e3e8ea; --muted:#99a6ad; --line:#334047;
+  --accent:#3fb39c; --accent-ink:#0d1a17; --soft:#22302d; --zero:#5f6c73; --warn:#e0a54a;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:20px;padding:20px;max-width:1500px;margin:0 auto}
+@media (max-width:900px){.app{grid-template-columns:1fr;padding:12px}}
+
+.side{display:flex;flex-direction:column;gap:16px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+h1{font-size:1.35rem;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1rem;margin:0 0 10px;font-weight:600}
+.sub{color:var(--muted);margin:0}
+textarea{width:100%;min-height:110px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);font-size:13px;line-height:1.35}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+label.opt{display:flex;gap:8px;align-items:center;cursor:pointer}
+select,.num{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg)}
+.field{display:flex;flex-direction:column;gap:4px;font-size:.88rem;color:var(--muted)}
+.msg{font-size:.88rem;margin-top:8px;color:var(--muted)}
+.msg.warn{color:var(--warn)}
+
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
+  border:2px dashed var(--line);border-radius:10px;padding:22px 14px;background:var(--soft);cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent)}
+.drop strong{font-size:1.02rem}
+.drop small{color:var(--muted)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ou{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.85rem;margin:12px 0 8px}
+.ou::before,.ou::after{content:"";flex:1;border-top:1px solid var(--line)}
+.prod{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+.prod:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.prod-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.prod-code{font-weight:700;font-variant-numeric:tabular-nums}
+.prod-desc{font-size:.9rem;color:var(--muted)}
+.mult{display:flex;gap:6px;align-items:center;font-size:.88rem;white-space:nowrap}
+.mult input{width:72px;text-align:right}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.92rem}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:.82rem;padding:4px 6px;border-bottom:1px solid var(--line)}
+td{padding:6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+td.r,th.r{text-align:right}
+tr.zero td{color:var(--zero)}
+td input.num{width:56px;text-align:right;padding:3px 6px}
+.total{font-size:.85rem;color:var(--muted);margin-top:6px;text-align:right}
+
+.preview{min-width:0}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:4px 0 12px}
+.count{font-weight:600}
+.count span{color:var(--muted);font-weight:400}
+.conf{border-radius:10px;padding:12px 14px;margin-bottom:14px;border:1px solid var(--line);background:var(--panel);font-size:.92rem}
+.conf.ok{border-color:var(--accent)}
+.conf.bad{border-color:#c0392b}
+.conf.alerta{border-color:var(--warn)}
+.conf h3{margin:0 0 6px;font-size:.98rem}
+.conf ul{margin:4px 0 0;padding-left:18px}
+.conf li{margin:2px 0}
+.conf .e{color:#c0392b}
+.conf .a{color:var(--warn)}
+.conf label{display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-weight:600;cursor:pointer}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .conf .e{color:#ff7b6b}}
+.sheet{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:40px;text-align:center;color:var(--muted);width:100%}
+.slot{display:flex;flex-direction:column;gap:6px}
+.slot-cap{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ===== Etiqueta 10 x 15 cm ===== */
+.label{width:100mm;height:150mm;background:#fff;color:#000;position:relative;overflow:hidden;
+  font-family:Arial,Helvetica,"Liberation Sans",sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.18),0 6px 18px rgba(0,0,0,.08);border-radius:1.5mm}
+.l-cod{position:absolute;top:6mm;left:3mm;right:3mm;height:16mm;display:flex;align-items:baseline;justify-content:center;gap:6mm;line-height:1}
+.l-cod .k{font-size:5mm}
+.l-cod .v{font-size:13mm;font-weight:700;letter-spacing:.2mm;white-space:nowrap}
+.l-desc{position:absolute;top:24mm;left:6mm;right:6mm;height:44mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.l-desc .t{width:100%;max-height:100%;text-align:center;font-weight:700;text-transform:uppercase;line-height:1.02;font-size:11mm;overflow:hidden;word-break:break-word}
+.l-lk{position:absolute;top:70.5mm;left:0;right:0;text-align:center;font-size:5.5mm;line-height:1}
+.l-lote{position:absolute;top:77mm;left:8mm;right:8mm;height:14mm;text-align:center;font-weight:700;font-size:11mm;line-height:14mm;white-space:nowrap;overflow:hidden}
+.l-mult{position:absolute;top:106.6mm;left:6mm;right:6mm;display:flex;align-items:baseline;justify-content:center;gap:4mm;line-height:1;white-space:nowrap}
+.l-mult .k{font-size:4.5mm}
+.l-mult .v{font-size:7mm;font-weight:700}
+.l-bc{position:absolute;top:115mm;left:0;right:0;height:14mm;display:flex;justify-content:center;align-items:center}
+.l-bc svg{width:76mm;height:14mm}
+.l-saldo{position:absolute;top:93mm;left:3mm;right:3mm;display:flex;align-items:baseline;justify-content:center;gap:4mm;line-height:1;white-space:nowrap}
+.l-saldo .k,.l-saldo .u{font-size:5.5mm}
+.l-saldo .v{font-size:13mm;font-weight:700}
+.l-bc .nobc{font-size:3.5mm;color:#666}
+
+@page{size:100mm 150mm;margin:0}
+@media print{
+  :root{padding:0}
+  body{background:#fff}
+  .side,.bar,.slot-cap,.empty,.conf{display:none!important}
+  .app{display:block;padding:0;margin:0;max-width:none}
+  .sheet{display:block;zoom:1!important}
+  .slot{display:block}
+  .label{box-shadow:none;border-radius:0;break-after:page;page-break-after:always}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="box">
+      <h1>Etiquetas por lote</h1>
+      <p class="sub">Envie a contagem de estoque do sistema. Lotes com saldo zero nunca geram etiqueta.</p>
+      <p class="sub" style="font-size:.8rem;margin-top:6px">Versão 2026-10-30 · v10 (múltiplo abaixo do saldo)</p>
+    </div>
+
+    <div class="box">
+      <h2>Relatório</h2>
+      <label class="drop" id="drop" tabindex="0">
+        <input type="file" id="arq" multiple accept=".pdf,.txt,.csv,.xlsx,.xls,.ods,.docx,.html,.htm,text/*">
+        <strong>Enviar arquivo do relatório</strong>
+        <small>Clique ou arraste aqui. PDF, TXT, CSV, Excel, Word ou HTML.</small>
+      </label>
+      <div class="ou">ou cole o texto</div>
+      <textarea id="src" placeholder="Texto do relatório “Contagem de Estoque” (um ou vários produtos)…" style="min-height:80px"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="btnLer">Ler relatório</button>
+        <button class="btn" id="btnAdd">Adicionar à lista</button>
+        <button class="btn" id="btnLimpar">Limpar lista</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="box">
+      <h2>Opções</h2>
+      <div class="row" style="gap:16px">
+        <label class="opt"><input type="checkbox" id="autoPdf" checked> Gerar o PDF assim que o arquivo for lido</label>
+        <label class="field">Código de barras
+          <select id="bcMode">
+            <option value="lote">Lote</option>
+            <option value="cod">Código do produto</option>
+            <option value="codlote">Código + lote</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Lista</h2>
+        <div class="row">
+          <button class="btn" id="btnTodos">Marcar todos</button>
+          <button class="btn" id="btnNenhum">Desmarcar</button>
+        </div>
+      </div>
+      <div id="lista" style="margin-top:12px"></div>
+    </div>
+  </aside>
+
+  <main class="preview">
+    <div class="bar">
+      <div class="count" id="count"></div>
+      <div class="row">
+        <label class="field" style="flex-direction:row;align-items:center;gap:6px">Zoom
+          <select id="zoom">
+            <option value="0.5">50%</option>
+            <option value="0.75" selected>75%</option>
+            <option value="1">100%</option>
+          </select>
+        </label>
+        <span class="msg" id="pdfMsg" style="margin:0"></span>
+        <button class="btn" id="btnPrint">Imprimir direto</button>
+        <button class="btn primary" id="btnPdf">Baixar PDF</button>
+      </div>
+    </div>
+    <div class="conf" id="conf" aria-live="polite"></div>
+    <div class="sheet" id="sheet"></div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var MKEY = "etq-multiplos";
+  // ===== TABELA DE MÚLTIPLOS =====
+  // Acrescente uma linha por produto: "código": "múltiplo",
+  // Valores digitados na tela por quem usa valem só no navegador daquela pessoa.
+  var MULT_PADRAO = {
+    "0403266": "2,52"
+  };
+  var multSalvos = {};
+  try { multSalvos = JSON.parse(localStorage.getItem(MKEY) || "{}") || {}; } catch(e){ multSalvos = {}; }
+  multSalvos = Object.assign({}, MULT_PADRAO, multSalvos);
+  function salvaMult(){ try { localStorage.setItem(MKEY, JSON.stringify(multSalvos)); } catch(e){} }
+
+  function num(s){ return parseFloat(String(s).replace(/\./g,"").replace(",", ".")); }
+  function fmt(n){ return (isNaN(n)?0:n).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
+
+  var produtos = [];
+
+  var UNID = "MT|M2|M²|M3|UN|UND|CX|PC|PÇ|PCT|KG|LT|L|M|JG|RL|SC|BD|TB|GL|FD|DZ|PR|BR|CT";
+  var prodRe1 = new RegExp("^(\\d{4,})\\s+(.+)\\s+(" + UNID + ")\\s+(?:.*\\s)?(-?[\\d.]*\\d,\\d{2})\\s*_*\\s*$");
+  var prodRe2 = /^(\d{4,})\s+(.+?)\s+([A-Z][A-Z0-9]{0,2})\s+(-?[\d.]*\d,\d{2})(?:\s|_|$)/;
+  var numRe = /^-?[\d.]*\d,\d{2}$/;
+  var numFim = /(-?[\d.]*\d,\d{2})\s*_*\s*$/;
+  var loteRe = /LOTE\s*:\s*(.+?)(?=\s{2,}|\s+LOC\.?\s*F|\s+-?[\d.]*\d,\d{2}\s*_*\s*$|$)/i;
+
+  function lerRelatorio(txt){
+    var linhas = String(txt).replace(/\u00a0/g," ").split(/\r?\n/).map(function(l){
+      return l.replace(/[;\t|]+/g,"  ").replace(/\s{3,}/g,"  ").trim();
+    });
+    var lista = [], cur = null;
+    linhas.forEach(function(l){
+      if(!l) return;
+      var m;
+      if(!numRe.test(l) && !/LOTE\s*:/i.test(l) && ((m = l.match(prodRe1)) || (m = l.match(prodRe2)))){
+        cur = {code:m[1], desc:m[2].replace(/\s+/g," ").trim(), un:m[3], total:num(m[4]), lots:[], nums:[]};
+        lista.push(cur); return;
+      }
+      if(!cur) return;
+      var ml = l.match(loteRe);
+      if(ml){
+        var nome = ml[1].trim();
+        if(!nome || /^TODOS/i.test(nome)) return;
+        var resto = l.slice(l.indexOf(ml[0]) + ml[0].length);
+        var nf = resto.match(numFim);
+        cur.lots.push({lote:nome, saldo: nf ? num(nf[1]) : null});
+        return;
+      }
+      if(numRe.test(l)) cur.nums.push(num(l));
+    });
+    return lista.map(function(p){
+      var k = 0, semSaldo = p.lots.filter(function(x){return x.saldo===null;}).length;
+      var lots = p.lots.map(function(x){
+        var s = x.saldo;
+        if(s === null) s = k < p.nums.length ? p.nums[k++] : 0;
+        return {lote:x.lote, saldo:s, sel:s>0, copias:1};
+      });
+      return {code:p.code, desc:p.desc, un:p.un, total:p.total,
+        warn: semSaldo > 0 && semSaldo !== p.nums.length,
+        mult: multSalvos[p.code] || "", lots: lots};
+    });
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  function aplicar(novos, substituir){
+    var msg = $("msg");
+    if(!novos.length){
+      msg.className = "msg warn";
+      msg.textContent = "Nenhum produto encontrado. Confira se o relatório tem a linha do produto (código, descrição, unidade e saldo) e as linhas “LOTE:”.";
+      return [];
+    }
+    if(substituir) produtos = [];
+    novos.forEach(function(n){
+      var i = produtos.findIndex(function(p){return p.code===n.code;});
+      if(i>=0) produtos[i] = n; else produtos.push(n);
+    });
+    var avisos = novos.filter(function(p){return p.warn;}).map(function(p){return p.code;});
+    var comEst = novos.reduce(function(a,p){return a + p.lots.filter(function(l){return l.saldo>0;}).length;},0);
+    msg.className = avisos.length ? "msg warn" : "msg";
+    msg.textContent = novos.length + " produto(s) lido(s), " + comEst + " lote(s) com estoque." +
+      (avisos.length ? " Atenção: a quantidade de lotes e saldos não bate em " + avisos.join(", ") + ". Confira os saldos." : "");
+    renderLista(); renderPrevia();
+    return novos;
+  }
+
+  function visiveis(p){
+    return p.lots.filter(function(l){ return l.saldo > 0; });
+  }
+
+  function renderLista(){
+    var el = $("lista");
+    if(!produtos.length){ el.innerHTML = '<p class="sub">A lista está vazia. Cole um relatório acima.</p>'; return; }
+    el.innerHTML = produtos.map(function(p,pi){
+      var rows = p.lots.map(function(l,li){
+        if(!(l.saldo>0)) return "";
+        return '<tr class="'+(l.saldo>0?"":"zero")+'">' +
+          '<td><input type="checkbox" data-p="'+pi+'" data-l="'+li+'" data-k="sel" '+(l.sel?"checked":"")+' aria-label="Imprimir lote '+esc(l.lote)+'"></td>' +
+          '<td>'+esc(l.lote)+'</td>' +
+          '<td class="r">'+fmt(l.saldo)+'</td>' +
+          '<td class="r"><input class="num" type="number" min="1" max="99" value="'+l.copias+'" data-p="'+pi+'" data-l="'+li+'" data-k="copias" aria-label="Cópias"></td>' +
+        '</tr>';
+      }).join("");
+      return '<div class="prod">' +
+        '<div class="prod-head"><div><div class="prod-code">'+esc(p.code)+'</div><div class="prod-desc">'+esc(p.desc)+'</div></div>' +
+        '<label class="mult">Múltiplo <input class="num" type="text" inputmode="decimal" value="'+esc(p.mult)+'" data-p="'+pi+'" data-k="mult"></label></div>' +
+        (rows ? '<table><thead><tr><th></th><th>Lote</th><th class="r">Saldo ('+esc(p.un)+')</th><th class="r">Cópias</th></tr></thead><tbody>'+rows+'</tbody></table>'
+              : '<p class="sub" style="margin-top:8px">Nenhum lote com estoque.</p>') +
+        '<div class="total">Saldo total: '+fmt(p.total)+' '+esc(p.un)+'</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  function valorBarra(p,l){
+    var m = $("bcMode").value;
+    if(m==="cod") return p.code;
+    if(m==="codlote") return p.code + "-" + l.lote;
+    return l.lote;
+  }
+
+  function renderPrevia(){
+    var sheet = $("sheet"), html = [], total = 0, lotes = 0;
+    produtos.forEach(function(p){
+      visiveis(p).forEach(function(l){
+        if(!l.sel) return;
+        lotes++;
+        var n = Math.max(1, Math.min(99, parseInt(l.copias,10)||1));
+        for(var i=1;i<=n;i++){
+          total++;
+          html.push('<div class="slot"><div class="label">' +
+            '<div class="l-cod"><span class="k">CÓD:</span><span class="v">'+esc(p.code)+'</span></div>' +
+            '<div class="l-desc"><div class="t">'+esc(p.desc)+'</div></div>' +
+            '<div class="l-lk">LOTE:</div>' +
+            '<div class="l-lote">'+esc(l.lote)+'</div>' +
+            '<div class="l-mult"><span class="k">MULTIPLO:</span><span class="v">'+esc(p.mult||"")+'</span></div>' +
+            '<div class="l-bc"><svg data-bc="'+esc(valorBarra(p,l))+'"></svg></div>' +
+            '<div class="l-saldo"><span class="k">SALDO:</span><span class="v">'+fmt(l.saldo)+'</span><span class="u">'+esc(p.un||"")+'</span></div>' +
+          '</div><div class="slot-cap">'+esc(p.code)+' · lote '+esc(l.lote)+' · saldo '+fmt(l.saldo)+' '+esc(p.un)+(n>1?' · cópia '+i+'/'+n:'')+(p.mult?'':' · ⚠ sem múltiplo cadastrado')+'</div></div>');
+        }
+      });
+    });
+    $("count").innerHTML = total ? total + ' etiqueta(s) <span>de '+lotes+' lote(s)</span>' : 'Nenhuma etiqueta selecionada';
+    atualizarConferencia();
+    sheet.innerHTML = total ? html.join("") : '<div class="empty">Marque um ou mais lotes na lista para ver as etiquetas aqui.</div>';
+    sheet.style.zoom = $("zoom").value;
+
+    sheet.querySelectorAll("svg[data-bc]").forEach(function(svg){
+      var v = svg.getAttribute("data-bc");
+      try {
+        if(typeof JsBarcode !== "function") throw 0;
+        JsBarcode(svg, v, {format:"CODE128", displayValue:false, margin:0, height:80, width:2});
+        svg.setAttribute("preserveAspectRatio","none");
+      } catch(e){
+        svg.outerHTML = '<span class="nobc">'+esc(v)+'</span>';
+      }
+    });
+    ajustarTextos();
+  }
+
+  function caber(el, inicial, minimo, checarLargura){
+    var t = inicial;
+    el.style.fontSize = t + "mm";
+    var box = checarLargura ? el : el.parentElement;
+    var guard = 60;
+    while(guard-- > 0 && t > minimo &&
+      (el.scrollHeight > box.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)){
+      t -= 0.25; el.style.fontSize = t + "mm";
+    }
+  }
+  function ajustarAgora(){
+    document.querySelectorAll(".l-desc .t").forEach(function(el){ caber(el, 11, 5, false); });
+    document.querySelectorAll(".l-lote").forEach(function(el){ caber(el, 11, 5, true); });
+    document.querySelectorAll(".l-cod .v").forEach(function(el){ caber(el, 13, 7, false); });
+  }
+  function ajustarTextos(){ requestAnimationFrame(ajustarAgora); }
+
+  // ===== Leitura de arquivos =====
+  var sampleP = Promise.resolve(null);
+  function ext(nome){ var m = /\.([^.]+)$/.exec(nome||""); return m ? m[1].toLowerCase() : ""; }
+  function lerBuffer(f){ return f.arrayBuffer ? f.arrayBuffer() : new Promise(function(ok,err){ var r=new FileReader(); r.onload=function(){ok(r.result);}; r.onerror=err; r.readAsArrayBuffer(f); }); }
+  function lerTexto(f){ return f.text ? f.text() : new Promise(function(ok,err){ var r=new FileReader(); r.onload=function(){ok(r.result);}; r.onerror=err; r.readAsText(f); }); }
+
+  async function textoPDF(buf){
+    var lib = window.pdfjsLib;
+    if(!lib) throw new Error("leitor de PDF não carregou");
+    lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    var pdf = await lib.getDocument({data:new Uint8Array(buf), isEvalSupported:false}).promise;
+    var out = [];
+    for(var i=1;i<=pdf.numPages;i++){
+      var pg = await pdf.getPage(i), tc = await pg.getTextContent(), rows = [];
+      tc.items.forEach(function(it){
+        if(!it.str || !it.str.trim()) return;
+        var y = it.transform[5], x = it.transform[4];
+        var r = rows.find(function(r){ return Math.abs(r.y - y) < 2.5; });
+        if(!r){ r = {y:y, it:[]}; rows.push(r); }
+        r.it.push({x:x, s:it.str, w:it.width||0});
+      });
+      rows.sort(function(a,b){ return b.y - a.y; });
+      rows.forEach(function(r){
+        r.it.sort(function(a,b){ return a.x - b.x; });
+        var line = "", fim = null;
+        r.it.forEach(function(t){
+          if(fim !== null){ var gap = t.x - fim; line += gap > 6 ? "  " : (gap > 0.6 ? " " : ""); }
+          line += t.s; fim = t.x + t.w;
+        });
+        out.push(line);
+      });
+    }
+    return out.join("\n");
+  }
+  function textoPlanilha(buf){
+    if(!window.XLSX) throw new Error("leitor de planilha não carregou");
+    var wb = XLSX.read(buf, {type:"array"});
+    return wb.SheetNames.map(function(n){
+      var rows = XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, raw:true, blankrows:false, defval:""});
+      return rows.map(function(r){
+        return r.map(function(c){ return typeof c === "number" ? fmt(c) : String(c).trim(); })
+                .filter(function(c){ return c !== ""; }).join("  ");
+      }).join("\n");
+    }).join("\n");
+  }
+  function textoHTML(t){
+    t = t.replace(/<(br|\/tr|\/p|\/div|\/li|\/h\d)[^>]*>/gi, "\n").replace(/<\/t[dh]>/gi, "  ");
+    var d = new DOMParser().parseFromString(t, "text/html");
+    return d.body ? d.body.textContent : t;
+  }
+  async function produtosDeImagem(f){
+    var sample = await sampleP;
+    var lim = sample ? await sample.limits().catch(function(){ return null; }) : null;
+    if(!sample || !lim || !lim.images) throw new Error("foto não é aceita; envie o relatório em PDF, Excel ou texto");
+    var r = await sample.json(
+      "A imagem é uma foto ou print de um relatório \"Contagem de Estoque\". Transcreva cada produto e seus lotes. " +
+      "Responda somente JSON no formato {\"produtos\":[{\"codigo\":\"0403266\",\"descricao\":\"...\",\"unidade\":\"MT\",\"saldo_total\":\"768,60\",\"lotes\":[{\"lote\":\"669A-32-0447-26\",\"saldo\":\"564,48\"}]}]}. " +
+      "Copie códigos, lotes e números exatamente como aparecem, com vírgula decimal. Inclua lotes com saldo zero.",
+      {images:[f], modelTier:"default"});
+    var ps = (r && r.produtos) || [];
+    return ps.map(function(p){
+      var code = String(p.codigo||"").trim();
+      return {code:code, desc:String(p.descricao||"").trim(), un:String(p.unidade||"").trim(), total:num(p.saldo_total||"0"),
+        warn:false, mult: multSalvos[code] || "",
+        lots:(p.lotes||[]).map(function(l){ var s = num(l.saldo||"0"); return {lote:String(l.lote||"").trim(), saldo:s, sel:s>0, copias:1}; })};
+    }).filter(function(p){ return p.code; });
+  }
+  async function produtosDeArquivo(f){
+    var e = ext(f.name), tipo = f.type || "";
+    if(e === "pdf" || tipo === "application/pdf") return lerRelatorio(await textoPDF(await lerBuffer(f)));
+    if(["xlsx","xls","ods","xlsm"].indexOf(e) >= 0) return lerRelatorio(textoPlanilha(await lerBuffer(f)));
+    if(e === "docx"){
+      if(!window.mammoth) throw new Error("leitor de Word não carregou");
+      var r = await mammoth.extractRawText({arrayBuffer: await lerBuffer(f)});
+      return lerRelatorio(r.value);
+    }
+    if(/^image\//.test(tipo) || ["png","jpg","jpeg","webp","gif"].indexOf(e) >= 0) return produtosDeImagem(f);
+    var t = await lerTexto(f);
+    if(e === "html" || e === "htm" || /<html|<table/i.test(t.slice(0,2000))) t = textoHTML(t);
+    return lerRelatorio(t);
+  }
+
+  async function processarArquivos(files){
+    files = Array.prototype.slice.call(files || []);
+    if(!files.length) return;
+    var msg = $("msg");
+    msg.className = "msg"; msg.textContent = "Lendo " + (files.length > 1 ? files.length + " arquivos" : "“" + files[0].name + "”") + "…";
+    var todos = [], erros = [];
+    for(var i=0;i<files.length;i++){
+      try { todos = todos.concat(await produtosDeArquivo(files[i])); }
+      catch(err){ erros.push(files[i].name + ": " + (err && err.message ? err.message : "não foi possível ler")); }
+    }
+    var novos = todos.length ? aplicar(todos, true) : [];
+    if(!todos.length){
+      msg.className = "msg warn";
+      msg.textContent = (erros.length ? erros.join(" | ") + ". " : "") + "Nenhum produto encontrado no arquivo.";
+      return;
+    }
+    if(erros.length){ msg.className = "msg warn"; msg.textContent += " Não lidos: " + erros.join(" | "); }
+    if(!$("autoPdf").checked) return;
+    var itens = coletar();
+    if(!itens.length){ $("pdfMsg").className = "msg warn"; $("pdfMsg").textContent = "Nenhum lote com saldo. Nada para imprimir."; return; }
+    if(!podeImprimir()){
+      $("pdfMsg").className = "msg warn";
+      $("pdfMsg").textContent = "O PDF não foi gerado automaticamente: veja a conferência acima das etiquetas.";
+      return;
+    }
+    baixarPDF();
+  }
+
+  var drop = $("drop"), arq = $("arq");
+  arq.addEventListener("change", function(){ processarArquivos(arq.files); arq.value = ""; });
+  drop.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); arq.click(); } });
+  ["dragenter","dragover"].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave","drop"].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function(e){ if(e.dataTransfer) processarArquivos(e.dataTransfer.files); });
+  document.addEventListener("dragover", function(e){ e.preventDefault(); });
+  document.addEventListener("drop", function(e){ if(!drop.contains(e.target)){ e.preventDefault(); } });
+
+  // Eventos
+  $("btnLer").addEventListener("click", function(){ aplicar(lerRelatorio($("src").value), true); });
+  $("btnAdd").addEventListener("click", function(){ aplicar(lerRelatorio($("src").value), false); });
+  $("btnLimpar").addEventListener("click", function(){ produtos = []; $("msg").textContent = ""; renderLista(); renderPrevia(); });
+  $("bcMode").addEventListener("change", renderPrevia);
+  $("zoom").addEventListener("change", function(){ $("sheet").style.zoom = this.value; });
+  $("btnPdf").addEventListener("click", baixarPDF);
+  $("btnPrint").addEventListener("click", function(){
+    if(dentroClaude){ $("pdfMsg").className = "msg warn"; $("pdfMsg").textContent = "Este link do Claude bloqueia a impressão. Use o site da empresa ou o arquivo HTML."; return; }
+    imprimirDireto();
+  });
+  function marcar(v){ produtos.forEach(function(p){ visiveis(p).forEach(function(l){ l.sel = v; }); }); renderLista(); renderPrevia(); }
+  $("btnTodos").addEventListener("click", function(){ marcar(true); });
+  $("btnNenhum").addEventListener("click", function(){ marcar(false); });
+
+  var lista = $("lista");
+  lista.addEventListener("change", function(e){
+    var t = e.target, k = t.getAttribute("data-k");
+    if(!k) return;
+    var p = produtos[+t.getAttribute("data-p")];
+    if(k==="mult"){ p.mult = t.value.trim().replace(".", ","); t.value = p.mult; if(multValido(p.mult)){ multSalvos[p.code] = p.mult; salvaMult(); } renderPrevia(); return; }
+    var l = p.lots[+t.getAttribute("data-l")];
+    if(k==="sel") l.sel = t.checked;
+    if(k==="copias") l.copias = Math.max(1, Math.min(99, parseInt(t.value,10)||1));
+    renderPrevia();
+  });
+  lista.addEventListener("input", function(e){
+    var t = e.target;
+    if(t.getAttribute("data-k")==="mult"){
+      var p = produtos[+t.getAttribute("data-p")];
+      p.mult = t.value.trim();
+      document.querySelectorAll(".l-mult .v").length && renderPrevia();
+    }
+  });
+
+  // ===== Conferência antes de imprimir =====
+  var confirmado = false, assinaturaAlertas = "";
+  function multValido(m){ return /^\d{1,4}([.,]\d{1,4})?$/.test(String(m||"").trim()) && num(String(m).replace(".",",")) > 0; }
+  function verificar(){
+    var erros = [], alertas = [];
+    var itens = coletar();
+    if(!itens.length) erros.push("Nenhuma etiqueta selecionada (só lotes com saldo podem ser impressos).");
+    produtos.forEach(function(p){
+      var sel = visiveis(p).filter(function(l){ return l.sel; });
+      if(!sel.length) return;
+      if(!String(p.code||"").trim()) erros.push("Produto sem código.");
+      if(!String(p.desc||"").trim()) erros.push(p.code + ": produto sem descrição.");
+      if(!String(p.mult||"").trim()) erros.push(p.code + ": múltiplo não informado.");
+      else if(!multValido(p.mult)) erros.push(p.code + ": múltiplo “" + p.mult + "” inválido. Use só número, ex.: 2,52.");
+      sel.forEach(function(l){
+        if(!(l.saldo > 0)) erros.push(p.code + " lote " + l.lote + ": saldo zerado ou negativo.");
+        if(!String(l.lote||"").trim()) erros.push(p.code + ": lote sem identificação.");
+        else if(!/^[\x20-\x7E]+$/.test(valorBarra(p,l))) alertas.push(p.code + " lote " + l.lote + ": tem acento ou caractere especial; o código de barras pode não ser lido.");
+        if(String(l.lote).length > 24) alertas.push(p.code + " lote " + l.lote + ": lote muito longo, vai sair com letra menor.");
+      });
+      var soma = p.lots.reduce(function(a,l){ return a + (l.saldo||0); }, 0);
+      if(p.total > 0 && Math.abs(soma - p.total) > 0.011)
+        alertas.push(p.code + ": a soma dos lotes (" + fmt(soma) + ") não bate com o saldo total do relatório (" + fmt(p.total) + "). Confira se a leitura pegou todos os lotes.");
+      if(p.warn) alertas.push(p.code + ": a quantidade de lotes e de saldos no arquivo é diferente. Confira os saldos.");
+      if(String(p.desc).length > 90) alertas.push(p.code + ": descrição muito longa, vai sair com letra menor.");
+    });
+    var vistos = {};
+    produtos.forEach(function(p){ if(vistos[p.code]) alertas.push(p.code + ": produto repetido na lista."); vistos[p.code] = 1; });
+    return {erros:erros, alertas:alertas, itens:itens};
+  }
+  function podeImprimir(){
+    var v = verificar();
+    return !v.erros.length && (!v.alertas.length || confirmado);
+  }
+  function atualizarConferencia(){
+    var v = verificar(), box = $("conf"), ass = v.alertas.join("|");
+    if(ass !== assinaturaAlertas){ confirmado = false; assinaturaAlertas = ass; }
+    var ok = !v.erros.length && (!v.alertas.length || confirmado);
+    $("btnPdf").disabled = !ok; $("btnPrint").disabled = !ok;
+    if(!v.itens.length && !produtos.length){ box.style.display = "none"; return; }
+    box.style.display = "";
+    var h = "";
+    if(v.erros.length){
+      box.className = "conf bad";
+      h += '<h3>Corrija antes de imprimir</h3><ul>' + v.erros.map(function(e){ return '<li class="e">' + esc(e) + '</li>'; }).join("") + '</ul>';
+    }
+    if(v.alertas.length){
+      if(!v.erros.length) box.className = "conf alerta";
+      h += '<h3 style="margin-top:' + (v.erros.length ? "10px" : "0") + '">Confira</h3><ul>' + v.alertas.map(function(a){ return '<li class="a">' + esc(a) + '</li>'; }).join("") + '</ul>';
+      if(!v.erros.length) h += '<label><input type="checkbox" id="chkConf" ' + (confirmado ? "checked" : "") + '> Conferi os avisos acima e quero imprimir assim mesmo</label>';
+    }
+    if(!v.erros.length && !v.alertas.length){
+      box.className = "conf ok";
+      h = '<h3>Tudo certo para imprimir</h3>' + v.itens.length + ' etiqueta(s), todas com saldo, múltiplo e código de barras válidos.';
+    }
+    box.innerHTML = h;
+    var chk = $("chkConf");
+    if(chk) chk.addEventListener("change", function(){ confirmado = chk.checked; atualizarConferencia(); });
+  }
+
+  // ===== PDF 10x15 =====
+  function coletar(){
+    var out = [];
+    produtos.forEach(function(p){
+      visiveis(p).forEach(function(l){
+        if(!l.sel) return;
+        var n = Math.max(1, Math.min(99, parseInt(l.copias,10)||1));
+        for(var i=0;i<n;i++) out.push({p:p,l:l});
+      });
+    });
+    return out;
+  }
+  var PT = 72/25.4; // mm -> pt
+  function centroPar(doc, y, k, kmm, v, vmm, gap){
+    doc.setFont("helvetica","normal"); doc.setFontSize(kmm*PT); var wk = doc.getTextWidth(k);
+    doc.setFont("helvetica","bold"); doc.setFontSize(vmm*PT); var wv = doc.getTextWidth(v);
+    var x = (100 - (wk + gap + wv)) / 2;
+    doc.setFont("helvetica","normal"); doc.setFontSize(kmm*PT); doc.text(k, x, y);
+    doc.setFont("helvetica","bold"); doc.setFontSize(vmm*PT); doc.text(v, x + wk + gap, y);
+  }
+  function desenhaEtiqueta(doc, p, l){
+    doc.setTextColor(0,0,0);
+    centroPar(doc, 18, "CÓD:", 5, p.code, 13, 6);
+    // descrição: preenche 92 x 49 mm
+    var desc = String(p.desc).toUpperCase(), t = 11, linhas;
+    doc.setFont("helvetica","bold");
+    while(true){
+      doc.setFontSize(t*PT);
+      linhas = doc.splitTextToSize(desc, 88);
+      if(linhas.length * t * 1.02 <= 44 || t <= 5) break;
+      t -= 0.25;
+    }
+    var h = linhas.length * t * 1.02;
+    var y0 = 24 + (44 - h) / 2 + t * 0.78;
+    linhas.forEach(function(ln, i){ doc.text(ln, 50, y0 + i * t * 1.02, {align:"center"}); });
+    // LOTE
+    doc.setFont("helvetica","normal"); doc.setFontSize(5.5*PT); doc.text("LOTE:", 50, 75, {align:"center"});
+    var lt = 11; doc.setFont("helvetica","bold");
+    do { doc.setFontSize(lt*PT); if(doc.getTextWidth(String(l.lote)) <= 84) break; lt -= 0.25; } while(lt > 5);
+    doc.text(String(l.lote), 50, 84 + lt * 0.36, {align:"center"});
+    // MULTIPLO
+    centroPar(doc, 112.2, "MULTIPLO:", 4.5, String(p.mult || ""), 7, 4);
+    // código de barras
+    var v = valorBarra(p, l);
+    try {
+      var c = document.createElement("canvas");
+      JsBarcode(c, v, {format:"CODE128", displayValue:false, margin:0, height:120, width:3});
+      doc.addImage(c.toDataURL("image/png"), "PNG", 12, 115, 76, 14);
+    } catch(e){
+      doc.setFont("helvetica","normal"); doc.setFontSize(3.5*PT); doc.text(v, 50, 122, {align:"center"});
+    }
+    // SALDO (linha acima do código de barras); MULTIPLO fica abaixo do código de barras
+    var sk = "SALDO:", sv = fmt(l.saldo), su = String(p.un || ""), g = 4, ys = 103.5;
+    doc.setFont("helvetica","normal"); doc.setFontSize(5.5*PT);
+    var w1 = doc.getTextWidth(sk), w3 = su ? doc.getTextWidth(su) : 0;
+    doc.setFont("helvetica","bold"); doc.setFontSize(13*PT);
+    var w2 = doc.getTextWidth(sv);
+    var xs = (100 - (w1 + g + w2 + (su ? g + w3 : 0))) / 2;
+    doc.setFont("helvetica","normal"); doc.setFontSize(5.5*PT); doc.text(sk, xs, ys);
+    doc.setFont("helvetica","bold"); doc.setFontSize(13*PT); doc.text(sv, xs + w1 + g, ys);
+    if(su){ doc.setFont("helvetica","normal"); doc.setFontSize(5.5*PT); doc.text(su, xs + w1 + g + w2 + g, ys); }
+  }
+  var dentroClaude = !!(window.claude && window.claude.use);
+  var downloadsP = dentroClaude ? window.claude.use("downloads").catch(function(){ return null; }) : Promise.resolve(null);
+  function montarPDF(itens){
+    var doc = new window.jspdf.jsPDF({unit:"mm", format:[100,150], orientation:"portrait"});
+    itens.forEach(function(it, i){ if(i) doc.addPage([100,150], "portrait"); desenhaEtiqueta(doc, it.p, it.l); });
+    return doc;
+  }
+  function imprimirDireto(){
+    var pm = $("pdfMsg");
+    if(!podeImprimir()){ pm.className = "msg warn"; pm.textContent = "Resolva os itens da conferência antes de imprimir."; atualizarConferencia(); return; }
+    var itens = coletar();
+    if(!itens.length) return;
+    if(!window.jspdf){ pm.className = "msg warn"; pm.textContent = "Não foi possível carregar o gerador de PDF. Recarregue a página."; return; }
+    var lib = window.pdfjsLib;
+    if(!lib){ pm.className = "msg warn"; pm.textContent = "Não foi possível carregar o leitor de PDF. Recarregue a página."; return; }
+    pm.className = "msg"; pm.textContent = "Preparando a impressão (" + itens.length + " etiqueta(s))…";
+    lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    var doc = montarPDF(itens);
+    // Renderiza o mesmo PDF em imagens de 300 dpi e imprime cada uma em página exata de 100x150 mm,
+    // para a impressão sair idêntica ao PDF salvo (sem "ajustar à página" do visualizador de PDF).
+    lib.getDocument({data:new Uint8Array(doc.output("arraybuffer")), isEvalSupported:false, useSystemFonts:false, standardFontDataUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/"}).promise.then(async function(pdf){
+      var imgs = [];
+      for(var i=1;i<=pdf.numPages;i++){
+        var pg = await pdf.getPage(i);
+        var vp = pg.getViewport({scale: 300/72});
+        var c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        var cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0,0,c.width,c.height);
+        await pg.render({canvasContext:cx, viewport:vp}).promise;
+        imgs.push(c.toDataURL("image/png"));
+      }
+      var html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>Etiquetas</title><style>" +
+        "@page{size:100mm 150mm;margin:0}html,body{margin:0;padding:0;background:#fff}" +
+        "img{display:block;width:100mm;height:150mm;break-after:page;page-break-after:always}" +
+        "img:last-child{break-after:auto;page-break-after:auto}</style></head><body>" +
+        imgs.map(function(u){ return "<img src=\"" + u + "\">"; }).join("") + "</body></html>";
+      var old = document.getElementById("frameImpressao"); if(old) old.remove();
+      var f = document.createElement("iframe");
+      f.id = "frameImpressao";
+      f.style.cssText = "position:fixed;left:-9999px;top:0;width:100mm;height:150mm;border:0";
+      f.onload = function(){
+        var w = f.contentWindow, im = w.document.images, falta = im.length;
+        function ir(){
+          try { w.focus(); w.print(); pm.className = "msg"; pm.textContent = "Impressão enviada (" + itens.length + " etiqueta(s))."; }
+          catch(e){ pm.className = "msg warn"; pm.textContent = "O navegador bloqueou a impressão. Use Baixar PDF."; }
+        }
+        Array.prototype.forEach.call(im, function(x){
+          if(x.complete){ if(--falta === 0) setTimeout(ir, 200); }
+          else x.onload = x.onerror = function(){ if(--falta === 0) setTimeout(ir, 200); };
+        });
+      };
+      f.srcdoc = html;
+      document.body.appendChild(f);
+    }).catch(function(e){ pm.className = "msg warn"; pm.textContent = "Não foi possível preparar a impressão: " + (e && e.message || e); });
+  }
+  function baixarPDF(){
+    var pm = $("pdfMsg");
+    if(!podeImprimir()){ pm.className = "msg warn"; pm.textContent = "Resolva os itens da conferência antes de imprimir."; atualizarConferencia(); return; }
+    var itens = coletar();
+    if(!itens.length) return;
+    if(!window.jspdf){ pm.className = "msg warn"; pm.textContent = "Não foi possível carregar o gerador de PDF. Recarregue a página."; return; }
+    var doc = montarPDF(itens);
+    var d = new Date(), z = function(n){return String(n).padStart(2,"0");};
+    var nome = "etiquetas-" + d.getFullYear() + z(d.getMonth()+1) + z(d.getDate()) + "-" + z(d.getHours()) + z(d.getMinutes()) + ".pdf";
+    var blob = doc.output("blob");
+    pm.className = "msg"; pm.textContent = "Gerando PDF…";
+    downloadsP.then(function(dl){
+      if(!dl && dentroClaude){
+        pm.className = "msg warn";
+        pm.textContent = "Este link não permite baixar arquivos nesta visualização. Use a versão do sistema hospedada no site da empresa ou o arquivo HTML.";
+        return;
+      }
+      if(!dl){
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a"); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+        pm.textContent = "PDF gerado: " + itens.length + " etiqueta(s).";
+        return;
+      }
+      return dl.save({filename:nome, data:blob}).then(function(){
+        pm.className = "msg"; pm.textContent = "PDF salvo: " + itens.length + " etiqueta(s).";
+      }, function(err){
+        pm.className = "msg warn";
+        pm.textContent = (err && err.code === "declined") ? "Download cancelado." :
+          (err && err.code === "rate_limited") ? "Já existe uma confirmação aberta. Aguarde e tente de novo." :
+          "Não foi possível baixar o PDF aqui.";
+      });
+    });
+  }
+
+  window.addEventListener("beforeprint", function(){ $("sheet").style.zoom = 1; ajustarAgora(); });
+  window.addEventListener("afterprint", function(){ $("sheet").style.zoom = $("zoom").value; });
+
+  renderLista(); renderPrevia();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarTextos);
+})();
+</script>
+</body>
+</html>
